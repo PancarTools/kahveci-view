@@ -65,3 +65,7 @@ fn logger(level: &str, message: &str) {
     }
 }
 ```
+
+- always create ROADMAP.md if doesn't exist and update it after every change with checklists for completed and pending tasks.
+
+- if doesn't exist, create a technical_implementation_history.md to document the evolution of the codebase, including major changes, architectural decisions, and any relevant context that would help future developers understand the project's history. this will be used for future AI threads to understand the evolution of the codebase. update it after every change.

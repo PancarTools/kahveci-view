@@ -47,11 +47,11 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 
 ### 1.2 File System Foundation (Week 1, Days 1-2)
 
-- [ ] **1.2.1** Setup Tauri filesystem permissions in `tauri.conf.json`
-- [ ] **1.2.2** Create file dialog integration (open file)
-- [ ] **1.2.3** Add file path validation and error handling
-- [ ] **1.2.4** Create basic file info extraction (name, size, extension)
-- [ ] **1.2.5** Test file selection with common image formats
+- [x] **1.2.1** Setup Tauri filesystem permissions in `tauri.conf.json` ✅
+- [x] **1.2.2** Create file dialog integration (open file) ✅
+- [x] **1.2.3** Add file path validation and error handling ✅
+- [x] **1.2.4** Create basic file info extraction (name, size, extension) ✅
+- [x] **1.2.5** Test file selection with common image formats ✅
 
 ### 1.3 Basic Image Display (Week 1, Days 3-4)
 
@@ -507,4 +507,4 @@ This roadmap is living document that will be updated as we progress. Each phase 
 ---
 
 _Last Updated: November 26, 2025_
-_Status: Phase 1.1 Complete ✅_
+_Status: Phase 1.1 Complete ✅, Tasks 1.2.1-1.2.2 Complete ✅_
