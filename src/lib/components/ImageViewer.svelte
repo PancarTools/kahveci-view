@@ -111,15 +111,7 @@
 </script>
 
 <div class="image-viewer">
-	{#if !fileService.currentFile}
-		<div class="no-image">
-			<div class="no-image-content">
-				<div class="no-image-icon">🖼️</div>
-				<h3>No Image Selected</h3>
-				<p>Select an image using the "Open Image" button to view it here.</p>
-			</div>
-		</div>
-	{:else if imageSource}
+	{#if imageSource}
 		<div class="image-container">
 			{#if fileService.isLoading}
 				<div class="loading">
@@ -130,7 +122,7 @@
 				<div class="error">
 					<div class="error-icon">❌</div>
 					<h3>Failed to Load Image</h3>
-					<p>Could not display: {fileService.currentFile.name}</p>
+					<p>Could not display: {fileService.currentFile?.name || 'Unknown file'}</p>
 					<p class="error-detail">The image file may be corrupted or in an unsupported format.</p>
 				</div>
 			{:else}
@@ -138,7 +130,7 @@
 					<img
 						bind:this={imageElement}
 						src={imageSource}
-						alt={fileService.currentFile.name}
+						alt={fileService.currentFile?.name || 'Image'}
 						onload={handleImageLoad}
 						onerror={handleImageError}
 						class="main-image"
@@ -166,16 +158,6 @@
 						</div>
 					{/if}
 				</div>
-				
-				{#if imageLoaded}
-					<div class="image-info">
-						<span class="dimensions">{imageNaturalWidth} × {imageNaturalHeight}</span>
-						<span class="separator">•</span>
-						<span class="format">{fileService.currentFile.extension.toUpperCase()}</span>
-						<span class="separator">•</span>
-						<span class="size">{fileService.currentFile.formattedSize}</span>
-					</div>
-				{/if}
 			{/if}
 		</div>
 	{/if}
@@ -183,45 +165,13 @@
 
 <style>
 	.image-viewer {
-		flex: 1;
+		width: 100%;
+		height: 100%;
 		display: flex;
 		flex-direction: column;
-		background: #fafafa;
-		border: 1px solid #e1e5e9;
-		border-radius: 8px;
-		min-height: 400px;
+		background: transparent;
 		position: relative;
 		overflow: hidden;
-	}
-
-	.no-image {
-		flex: 1;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	.no-image-content {
-		text-align: center;
-		color: #6c757d;
-	}
-
-	.no-image-icon {
-		font-size: 4rem;
-		margin-bottom: 1rem;
-		opacity: 0.5;
-	}
-
-	.no-image-content h3 {
-		margin: 0 0 0.5rem 0;
-		font-size: 1.2rem;
-		font-weight: 500;
-	}
-
-	.no-image-content p {
-		margin: 0;
-		font-size: 0.9rem;
-		opacity: 0.8;
 	}
 
 	.image-container {
@@ -229,6 +179,8 @@
 		display: flex;
 		flex-direction: column;
 		position: relative;
+		width: 100%;
+		height: 100%;
 	}
 
 	.image-wrapper {
@@ -236,9 +188,10 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		padding: 1rem;
+		padding: 20px;
 		position: relative;
-		min-height: 300px;
+		width: 100%;
+		height: 100%;
 	}
 
 	.main-image {
@@ -292,11 +245,11 @@
 
 	.loading p {
 		margin: 0.5rem 0 0 0;
-		color: #6c757d;
+		color: #cccccc;
 	}
 
 	.error {
-		color: #dc3545;
+		color: #ff6b6b;
 	}
 
 	.error-icon {
@@ -316,59 +269,5 @@
 	.error-detail {
 		font-size: 0.85rem;
 		opacity: 0.8;
-	}
-
-	.image-info {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 0.5rem;
-		padding: 0.75rem;
-		background: rgba(255, 255, 255, 0.9);
-		border-top: 1px solid #e1e5e9;
-		font-size: 0.85rem;
-		color: #495057;
-	}
-
-	.separator {
-		color: #adb5bd;
-	}
-
-	.dimensions {
-		font-weight: 500;
-	}
-
-	.format {
-		font-weight: 600;
-		text-transform: uppercase;
-	}
-
-	.size {
-		color: #6c757d;
-	}
-
-	@media (prefers-color-scheme: dark) {
-		.image-viewer {
-			background: #2f2f2f;
-			border-color: #555;
-		}
-
-		.no-image-content {
-			color: #adb5bd;
-		}
-
-		.image-info {
-			background: rgba(47, 47, 47, 0.9);
-			border-top-color: #555;
-			color: #adb5bd;
-		}
-
-		.size {
-			color: #868e96;
-		}
-
-		.separator {
-			color: #6c757d;
-		}
 	}
 </style>

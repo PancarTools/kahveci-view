@@ -1,110 +1,76 @@
 <script lang="ts">
-  import FileExplorer from "../lib/components/FileExplorer.svelte";
-  import ImageViewer from "../lib/components/ImageViewer.svelte";
+	import { onMount } from 'svelte';
+	import Toolbar from '$lib/components/Toolbar.svelte';
+	import StatusBar from '$lib/components/StatusBar.svelte';
+	import DefaultState from '$lib/components/DefaultState.svelte';
+	import ImageViewer from '$lib/components/ImageViewer.svelte';
+	import { getFileService } from '$lib/stores/fileService.svelte';
+	import { setupGlobalErrorHandling } from '$lib/utils/logger';
+
+	const fileService = getFileService();
+
+	onMount(() => {
+		setupGlobalErrorHandling();
+	});
 </script>
 
-<main class="container">
-  <header class="header">
-    <h1>Kahveci View</h1>
-    <p class="subtitle">Modern Image Viewer</p>
-  </header>
+<svelte:head>
+	<title>Kahveci View - Modern Image Viewer</title>
+	<meta name="description" content="A fast, modern image viewer built with Tauri and Svelte" />
+</svelte:head>
 
-  <div class="main-content">
-    <div class="sidebar">
-      <FileExplorer />
-    </div>
-    
-    <div class="viewer-area">
-      <ImageViewer />
-    </div>
-  </div>
-</main>
+<div class="app-layout">
+	<Toolbar />
+	
+	<main class="main-content">
+		{#if fileService.currentFile}
+			<ImageViewer />
+		{:else}
+			<DefaultState />
+		{/if}
+	</main>
+
+	<StatusBar />
+</div>
 
 <style>
-:root {
-  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 400;
-  color: #0f0f0f;
-  background-color: #f6f6f6;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  -webkit-text-size-adjust: 100%;
-}
+	:global(html, body) {
+		margin: 0;
+		padding: 0;
+		height: 100%;
+		overflow: hidden;
+		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+		background: #101010;
+		color: #ffffff;
+	}
 
-.container {
-  margin: 0;
-  padding: 2rem;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
+	:global(*, *::before, *::after) {
+		box-sizing: border-box;
+	}
 
-.header {
-  text-align: center;
-  margin-bottom: 2rem;
-}
+	.app-layout {
+		display: flex;
+		flex-direction: column;
+		height: 100vh;
+		width: 100vw;
+		background: #101010;
+	}
 
-.header h1 {
-  margin: 0 0 0.5rem 0;
-  font-size: 2.5rem;
-  color: #2c3e50;
-  font-weight: 600;
-}
+	.main-content {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: #101010;
+		padding: 20px;
+		overflow: hidden;
+		position: relative;
+	}
 
-.subtitle {
-  margin: 0;
-  color: #7f8c8d;
-  font-size: 1.1rem;
-  font-weight: 400;
-}
-
-.main-content {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 400px 1fr;
-  gap: 1rem;
-  min-height: 0;
-}
-
-.sidebar {
-  display: flex;
-  flex-direction: column;
-  min-width: 350px;
-}
-
-.viewer-area {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-@media (max-width: 768px) {
-  .main-content {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
-  }
-  
-  .sidebar {
-    min-width: unset;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    color: #f6f6f6;
-    background-color: #2f2f2f;
-  }
-
-  .header h1 {
-    color: #ecf0f1;
-  }
-
-  .subtitle {
-    color: #bdc3c7;
-  }
-}
+	/* Ensure proper scrolling on smaller screens */
+	@media (max-height: 600px) {
+		.main-content {
+			padding: 10px;
+		}
+	}
 </style>

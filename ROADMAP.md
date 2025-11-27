@@ -61,15 +61,31 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 - [x] **1.3.4** Handle image loading errors gracefully ✅
 - [x] **1.3.5** Add loading spinner/placeholder ✅
 
-### 1.4 Simple Zoom (Week 1, Days 5-6)
+### 1.4 Layout & UI Foundation (Week 1, Days 5-6) ✅
 
-- [ ] **1.4.1** Add zoom state management (zoom level store)
-- [ ] **1.4.2** Implement zoom in/out buttons
-- [ ] **1.4.3** Add fit-to-window mode
-- [ ] **1.4.4** Add actual size (100%) mode
-- [ ] **1.4.5** Basic zoom controls UI
+- [x] **1.4.1** Create top toolbar component with open image button ✅
+- [x] **1.4.2** Create bottom status bar for image information display ✅
+- [x] **1.4.3** Implement default app state (400x400 with "Open Image" message) ✅
+- [x] **1.4.4** Add emoji-based icons for UI elements (no SVGs yet) ✅
+- [x] **1.4.5** Create responsive layout structure (top bar + content + bottom bar) ✅
 
-### 1.5 Basic Navigation (Week 1, Day 7)
+**✨ Completed**: Major UI/UX refactor from sidebar to modern app layout
+
+- **Toolbar.svelte**: Top navigation with gradient design, open image functionality
+- **StatusBar.svelte**: Bottom info bar with file metadata and status updates
+- **DefaultState.svelte**: 400x400 default state with animated "Open Image" call-to-action
+- **Updated Layout**: Three-tier architecture (Toolbar + Content + StatusBar)
+- **Fixed**: Compilation error in ImageViewer component (HTML structure issue)
+
+### 1.5 Simple Zoom (Week 1, Day 7)
+
+- [ ] **1.5.1** Add zoom state management (zoom level store)
+- [ ] **1.5.2** Implement zoom in/out buttons in toolbar
+- [ ] **1.5.3** Add fit-to-window mode
+- [ ] **1.5.4** Add actual size (100%) mode
+- [ ] **1.5.5** Basic zoom controls UI integration
+
+### 1.6 Basic Navigation (Week 2, Day 1)
 
 - [ ] **1.5.1** Add Previous/Next buttons
 - [ ] **1.5.2** Implement arrow key navigation
@@ -84,23 +100,23 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 - [ ] **1.6.4** Add status bar area
 - [ ] **1.6.5** Implement responsive grid layout
 
-### 1.7 Theme System (Week 2, Days 3-4)
+### 1.8 Theme System (Week 2, Days 4-5)
 
-- [ ] **1.7.1** Setup CSS custom properties for theming
-- [ ] **1.7.2** Create light theme variables
-- [ ] **1.7.3** Create dark theme variables
-- [ ] **1.7.4** Add theme toggle store and component
-- [ ] **1.7.5** Persist theme preference
+- [ ] **1.8.1** Setup CSS custom properties for theming
+- [ ] **1.8.2** Create light theme variables
+- [ ] **1.8.3** Create dark theme variables
+- [ ] **1.8.4** Add theme toggle in toolbar
+- [ ] **1.8.5** Persist theme preference
 
-### 1.8 File Format Support (Week 2, Days 5-6)
+### 1.9 File Format Support (Week 2, Days 6-7)
 
-- [ ] **1.8.1** Test JPEG support and optimization
-- [ ] **1.8.2** Test PNG support with transparency
-- [ ] **1.8.3** Test WebP format support
-- [ ] **1.8.4** Test GIF static display
-- [ ] **1.8.5** Add format detection and validation
+- [ ] **1.9.1** Test JPEG support and optimization
+- [ ] **1.9.2** Test PNG support with transparency
+- [ ] **1.9.3** Test WebP format support
+- [ ] **1.9.4** Test GIF static display
+- [ ] **1.9.5** Add format detection and validation
 
-### 1.9 Polish & Testing (Week 2, Day 7)
+### 1.10 Polish & Testing (Week 2, Day 7)
 
 - [ ] **1.9.1** Add error boundaries and user feedback
 - [ ] **1.9.2** Improve loading states and transitions
@@ -456,53 +472,56 @@ This roadmap is living document that will be updated as we progress. Each phase 
 
 ## 🚀 Getting Started
 
-### **Immediate Next Task (1.2.1)**: Setup Tauri Filesystem Permissions
+### **Current Status**: Phase 1.3 Complete ✅ - Ready for Phase 1.4
 
-**Estimated Time**: 30 minutes
-**Goal**: Enable file system access for image loading
+**Last Achievement**: Image display functionality working perfectly with comprehensive logging system
+
+### **Immediate Next Task (1.4.1)**: Create Top Toolbar Component
+
+**Estimated Time**: 45 minutes  
+**Goal**: Create a clean top toolbar with open image functionality
 
 **Steps**:
 
-1. Update `src-tauri/tauri.conf.json` with filesystem permissions
-2. Add file dialog permissions
-3. Test file selection dialog
+1. Create `Toolbar.svelte` component following Svelte 5 runes pattern
+2. Add open image button with emoji icon (📁 or 🖼️)
+3. Integrate with existing file service
+4. Style with modern, clean design
 
-### **Today's Target**: Complete tasks 1.2.1 through 1.2.3
+### **Today's Target**: Complete tasks 1.4.1 through 1.4.3
 
-**Estimated Time**: 2-3 hours
-**Outcome**: Working file selection and basic error handling
+**Estimated Time**: 2-3 hours  
+**Outcome**: Clean layout with top/bottom bars and proper default state
 
-### **This Week's Goal**: Complete Phase 1.2-1.5 (File system + basic image viewing)
+### **This Week's Goal**: Complete Phase 1.4-1.5 (Layout + Zoom)
 
-**Outcome**: Can open and display images with basic zoom and navigation
+**Outcome**: Professional layout with working zoom functionality
 
 ---
 
-## 📅 Daily Breakdown for Week 1
+## 📅 Daily Breakdown for Week 1-2
 
-### **Day 1 (Today)**: File System Foundation
+### **Day 1-4**: Foundation Complete ✅
 
-- [ ] **Morning**: Tasks 1.2.1-1.2.2 (File permissions & dialog)
-- [ ] **Afternoon**: Tasks 1.2.3-1.2.4 (Error handling & file info)
+- ✅ File System Foundation (Tasks 1.2.1-1.2.5)
+- ✅ Basic Image Display (Tasks 1.3.1-1.3.5)
 
-### **Day 2**: Complete File System + Start Display
+### **Day 5-6**: Layout & UI Foundation (Phase 1.4)
 
-- [ ] **Morning**: Task 1.2.5 + Start 1.3.1-1.3.2
-- [ ] **Afternoon**: Tasks 1.3.3-1.3.4
+- [ ] **Morning**: Tasks 1.4.1-1.4.2 (Top toolbar & bottom status bar)
+- [ ] **Afternoon**: Tasks 1.4.3-1.4.5 (Default state & responsive layout)
 
-### **Day 3**: Image Display
+### **Day 7**: Simple Zoom (Phase 1.5)
 
-- [ ] **Morning**: Task 1.3.5 + Start 1.4.1-1.4.2
-- [ ] **Afternoon**: Tasks 1.4.3-1.4.4
+- [ ] **Morning**: Tasks 1.5.1-1.5.3 (Zoom state & controls)
+- [ ] **Afternoon**: Tasks 1.5.4-1.5.5 (Zoom modes & UI integration)
 
-### **Day 4**: Zoom & Navigation
+### **Week 2**: Enhanced Features
 
-- [ ] **Morning**: Task 1.4.5 + Start 1.5.1-1.5.2
-- [ ] **Afternoon**: Tasks 1.5.3-1.5.4
-
-### **Day 5-7**: Layout & Theme
-
-- Continue with remaining tasks...
+- [ ] **Day 1**: Basic Navigation (Phase 1.6)
+- [ ] **Day 2-3**: Enhanced File Operations (Phase 1.7)
+- [ ] **Day 4-5**: Theme System (Phase 1.8)
+- [ ] **Day 6-7**: File Format Support & Polish (Phase 1.9-1.10)
 
 ---
 

@@ -251,8 +251,117 @@ src-tauri/
 - File system operations require careful error handling and validation
 - Security-first approach prevents common vulnerabilities
 
+### Phase 1.4: Layout & UI Foundation (Completed ✅)
+
+**Date**: November 30, 2025
+
+**Architectural Decisions Made**:
+
+1. **Major UI Architecture Refactor**: Transitioned from sidebar to modern app layout
+
+   - **Decision**: Moved from two-column layout to three-tier layout (Toolbar + Content + StatusBar)
+   - **Rationale**: Modern app design patterns, better space utilization, professional appearance
+   - **Implementation**: Created separate components for each tier with clear responsibilities
+
+2. **Component-Based Layout System**: Created dedicated layout components
+
+   ```typescript
+   // Component Structure:
+   Toolbar.svelte      - Top navigation and controls
+   StatusBar.svelte    - Bottom status information
+   DefaultState.svelte - 400x400 default app state
+   ImageViewer.svelte  - Adapted for new layout structure
+   ```
+
+3. **Emoji-First UI Design**: Used emoji icons instead of SVG dependencies
+
+   - **Decision**: Emoji icons for initial UI elements
+   - **Rationale**: No external dependencies, universal support, quick prototyping
+   - **Examples**: 📁 (Open), 🖼️ (Image), ✨ (Visual enhancement)
+
+**Key Files Created/Modified**:
+
+- `src/lib/components/Toolbar.svelte` (NEW)
+  - Top navigation bar with gradient design
+  - Open image functionality integrated
+  - Responsive design with hover effects
+- `src/lib/components/StatusBar.svelte` (NEW)
+  - File path display and image metadata
+  - Real-time status updates
+  - Monospace font for technical information
+- `src/lib/components/DefaultState.svelte` (NEW)
+  - 400x400 pixel default application state
+  - Animated floating icons and hover effects
+  - Call-to-action design for opening images
+- `src/routes/+page.svelte` (MODIFIED)
+  - Updated to three-tier layout structure
+  - Conditional rendering based on file state
+  - Global CSS reset and layout management
+- `src/lib/components/ImageViewer.svelte` (REFACTORED)
+  - Removed old no-image state (moved to DefaultState)
+  - Streamlined for new layout integration
+  - Fixed HTML structure compilation error
+
+**Technical Implementation Details**:
+
+1. **Layout Architecture**:
+
+   ```svelte
+   <!-- Three-Tier Layout Structure -->
+   <Toolbar />
+   <main class="content">
+     {#if fileService.currentFile}
+       <ImageViewer />
+     {:else}
+       <DefaultState />
+     {/if}
+   </main>
+   <StatusBar />
+   ```
+
+2. **Responsive Design System**:
+
+   - CSS Grid for layout structure
+   - Flexible height allocation (auto + 1fr + auto)
+   - Dark mode support with CSS custom properties
+   - Smooth transitions and animations
+
+3. **File Service Integration**:
+   - All components use centralized file service
+   - Reactive updates across layout tiers
+   - Consistent state management pattern
+
+**Problems Encountered & Solutions**:
+
+1. **HTML Structure Compilation Error**:
+
+   - **Issue**: Corrupted HTML in ImageViewer.svelte with mismatched div tags
+   - **Root Cause**: Duplicate JavaScript event handlers outside of img tag
+   - **Solution**: Cleaned up corrupted HTML structure and removed duplicate code
+   - **Prevention**: More careful file editing and immediate compilation testing
+
+2. **Layout Component Integration**:
+   - **Challenge**: Ensuring consistent file service state across components
+   - **Solution**: Used Svelte 5 runes reactive pattern for automatic updates
+   - **Result**: Seamless real-time updates across all layout tiers
+
+**Performance Considerations**:
+
+- Minimal re-renders through Svelte 5 runes efficiency
+- CSS-only animations for smooth performance
+- Conditional rendering to avoid unnecessary component mounting
+- Optimized image loading states and error handling
+
+**Key Learnings**:
+
+- Three-tier layout provides better user experience than sidebar approach
+- Component separation allows for better maintainability and testing
+- Emoji icons provide quick, dependency-free UI development
+- Svelte 5 runes make cross-component state management very clean
+- Immediate compilation testing prevents structure errors from accumulating
+
 ---
 
-_Last Updated: November 27, 2025_  
-_Current Phase: 1.3 - Basic Image Display (Completed)_  
-_Next Phase: 1.4 - Simple Zoom Implementation_
+_Last Updated: November 30, 2025_  
+_Current Phase: 1.4 - Layout & UI Foundation (Completed)_  
+_Next Phase: 1.5 - Simple Zoom Implementation_
