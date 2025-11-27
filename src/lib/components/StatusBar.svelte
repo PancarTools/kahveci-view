@@ -18,37 +18,37 @@
 	}
 </script>
 
-<div class="status-bar">
-	<div class="status-left">
+<div class="flex items-center justify-between h-8 md:h-7 bg-[#1a1a1a] border-t border-[#333333] px-4 md:px-3 text-xs md:text-[11px] text-[#cccccc] select-none relative z-10">
+	<div class="flex items-center gap-2 flex-none min-w-[150px] md:min-w-[100px]">
 		{#if fileService.currentFile}
-			<span class="file-path" title={fileService.currentFile.path}>
+			<span class="font-mono text-xs md:text-[10px] text-[#cccccc] max-w-[200px] md:max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap" title={fileService.currentFile.path}>
 				📂 {getDisplayPath(fileService.currentFile.path)}
 			</span>
 		{:else}
-			<span class="no-file">No image loaded</span>
+			<span class="italic text-[#888888]">No image loaded</span>
 		{/if}
 	</div>
 
-	<div class="status-center">
+	<div class="flex items-center justify-center flex-1 overflow-hidden max-sm:hidden">
 		{#if fileService.currentFile}
-			<div class="image-info">
-				<span class="dimensions">
+			<div class="flex items-center gap-1.5 md:gap-1 whitespace-nowrap overflow-hidden text-ellipsis">
+				<span class="font-medium text-[#cccccc]">
 					📐 {fileService.currentFile.name}
 				</span>
-				<span class="separator">•</span>
-				<span class="format">
+				<span class="text-[#666666] font-normal">•</span>
+				<span class="font-semibold text-white font-mono">
 					{fileService.currentFile.extension.toUpperCase()}
 				</span>
-				<span class="separator">•</span>
-				<span class="size">
+				<span class="text-[#666666] font-normal">•</span>
+				<span class="text-[#cccccc] font-medium">
 					{fileService.currentFile.formattedSize}
 				</span>
 			</div>
 		{/if}
 	</div>
 
-	<div class="status-right">
-		<span class="app-status">
+	<div class="flex items-center gap-2 flex-none min-w-[150px] md:min-w-[100px] max-sm:flex-1">
+		<span class="font-medium">
 			{#if fileService.isLoading}
 				⏳ Loading...
 			{:else if fileService.error}
@@ -59,135 +59,7 @@
 				💤 Idle
 			{/if}
 		</span>
-		<span class="separator">•</span>
-		<span class="timestamp">{getCurrentTime()}</span>
+		<span class="text-[#666666] font-normal">•</span>
+		<span class="font-mono text-xs text-[#cccccc] md:hidden">{getCurrentTime()}</span>
 	</div>
 </div>
-
-<style>
-	.status-bar {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		height: 32px;
-		background: #1a1a1a;
-		border-top: 1px solid #333333;
-		padding: 0 16px;
-		font-size: 12px;
-		color: #cccccc;
-		user-select: none;
-		position: relative;
-		z-index: 10;
-	}
-
-	.status-left,
-	.status-right {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		flex: 0 0 auto;
-		min-width: 150px;
-	}
-
-	.status-center {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		flex: 1;
-		overflow: hidden;
-	}
-
-	.image-info {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-
-	.file-path {
-		font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
-		font-size: 11px;
-		color: #cccccc;
-		max-width: 200px;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
-	.no-file {
-		font-style: italic;
-		color: #888888;
-	}
-
-	.dimensions {
-		font-weight: 500;
-		color: #cccccc;
-	}
-
-	.format {
-		font-weight: 600;
-		color: #ffffff;
-		font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
-	}
-
-	.size {
-		color: #cccccc;
-		font-weight: 500;
-	}
-
-	.separator {
-		color: #666666;
-		font-weight: normal;
-	}
-
-	.app-status {
-		font-weight: 500;
-	}
-
-	.timestamp {
-		font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
-		font-size: 11px;
-		color: #cccccc;
-	}
-
-	/* Responsive design */
-	@media (max-width: 768px) {
-		.status-bar {
-			height: 28px;
-			padding: 0 12px;
-			font-size: 11px;
-		}
-
-		.status-left,
-		.status-right {
-			min-width: 100px;
-		}
-
-		.file-path {
-			max-width: 120px;
-			font-size: 10px;
-		}
-
-		.timestamp {
-			display: none;
-		}
-
-		.image-info {
-			gap: 4px;
-		}
-	}
-
-	/* Very small screens */
-	@media (max-width: 480px) {
-		.status-center {
-			display: none;
-		}
-
-		.status-left,
-		.status-right {
-			flex: 1;
-		}
-	}
-</style>
