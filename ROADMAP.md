@@ -6,571 +6,339 @@
 
 Create a fast, lightweight, cross-platform image viewer and editor that combines the simplicity of IrfanView with modern UI/UX and extensibility.
 
-## � Current Progress Status
+## 📊 Current Progress Status
 
-**Phase 1: COMPLETED ✅ | Phase 2: COMPLETED ✅**
-
-## Phase 2: Design System Migration (COMPLETED ✅)
-
-### 2.1 Tailwind CSS Integration
-
-- [x] Tailwind CSS v4.1 setup with Vite
-- [x] 4-color palette configuration (#101010, #141414, #F5F5F5, #EE3B3E)
-- [x] Mulish font integration
-- [x] Design system architecture
-
-### 2.2 Component Migration
-
-- [x] StatusBar component migrated to Tailwind
-- [x] Toolbar component migrated to Tailwind
-- [x] DefaultState component migrated to Tailwind
-- [x] ImageViewer component migrated to Tailwind
-- [x] FileExplorer component migrated to Tailwind
-- [x] Multi-line class formatting for readability
-
-### 2.3 Design System Refinement
-
-- [x] Semantic color token structure
-- [x] Responsive design patterns
-- [x] Professional multi-line class formatting
-- [x] Complete CSS removal and utility-first approach
-- [x] Testing and validation
-
-### Modern Enhancements
-
-- [ ] Modern, responsive UI
-- [ ] Dark/Light theme support
-- [ ] Touch/gesture support
-- [ ] Cloud storage integration
-- [ ] Real-time collaboration
-- [ ] Advanced metadata editing
-- [ ] Vector graphics support
-- [ ] AI-powered features
+**Phase 1: COMPLETED ✅ | Phase 2: COMPLETED ✅ | Phase 3: READY TO START 🚀**
 
 ---
 
 ## 🗓️ Development Phases
 
-## Phase 1: Foundation (Weeks 1-2)
+## Phase 1: Foundation & Core Viewing (COMPLETED ✅)
 
-**Goal**: Basic image viewer functionality
+**Goal**: Basic image viewer functionality with modern UI
 
-### 1.1 Project Architecture Setup ✅
-
+### 1.1 Project Architecture & File System
 - [x] Tauri 2 + Svelte 5 + SvelteKit setup
-- [x] TypeScript configuration
-- [x] Basic routing structure
-- [x] State management with Svelte 5 runes
+- [x] File system permissions and dialog integration
+- [x] File path validation and security checks
+- [x] File metadata extraction (name, size, extension, date)
 
-### 1.2 File System Foundation (Week 1, Days 1-2)
+### 1.2 Basic Image Display
+- [x] Image loading with Tauri asset protocol
+- [x] Responsive image display with proper scaling
+- [x] Loading states and comprehensive error handling
+- [x] Support for common formats (JPEG, PNG, GIF, WebP, BMP, TIFF, SVG)
 
-- [x] **1.2.1** Setup Tauri filesystem permissions in `tauri.conf.json` ✅
-- [x] **1.2.2** Create file dialog integration (open file) ✅
-- [x] **1.2.3** Add file path validation and error handling ✅
-- [x] **1.2.4** Create basic file info extraction (name, size, extension) ✅
-- [x] **1.2.5** Test file selection with common image formats ✅
+### 1.3 Modern UI Layout
+- [x] Three-tier layout (Toolbar + Content + StatusBar)
+- [x] Professional toolbar with file operations
+- [x] Status bar with file metadata and real-time updates
+- [x] Default state with drag & drop placeholder
+- [x] Emoji-based icons and modern design
 
-### 1.3 Basic Image Display (Week 1, Days 3-4)
+### 1.4 Logging & Debugging
+- [x] Comprehensive logging system with runtime controls
+- [x] Debug utilities and performance monitoring
+- [x] Error tracking and user feedback
 
-- [x] **1.3.1** Create ImageViewer component structure ✅
-- [x] **1.3.2** Implement image loading from file path ✅
-- [x] **1.3.3** Add basic image display with proper scaling ✅
-- [x] **1.3.4** Handle image loading errors gracefully ✅
-- [x] **1.3.5** Add loading spinner/placeholder ✅
-
-### 1.4 Layout & UI Foundation (Week 1, Days 5-6) ✅
-
-- [x] **1.4.1** Create top toolbar component with open image button ✅
-- [x] **1.4.2** Create bottom status bar for image information display ✅
-- [x] **1.4.3** Implement default app state (400x400 with "Open Image" message) ✅
-- [x] **1.4.4** Add emoji-based icons for UI elements (no SVGs yet) ✅
-- [x] **1.4.5** Create responsive layout structure (top bar + content + bottom bar) ✅
-
-**✨ Completed**: Major UI/UX refactor from sidebar to modern app layout
-
-- **Toolbar.svelte**: Top navigation with gradient design, open image functionality
-- **StatusBar.svelte**: Bottom info bar with file metadata and status updates
-- **DefaultState.svelte**: 400x400 default state with animated "Open Image" call-to-action
-- **Updated Layout**: Three-tier architecture (Toolbar + Content + StatusBar)
-- **Fixed**: Compilation error in ImageViewer component (HTML structure issue)
-
-### 1.5 Simple Zoom (Week 1, Day 7)
-
-- [ ] **1.5.1** Add zoom state management (zoom level store)
-- [ ] **1.5.2** Implement zoom in/out buttons in toolbar
-- [ ] **1.5.3** Add fit-to-window mode
-- [ ] **1.5.4** Add actual size (100%) mode
-- [ ] **1.5.5** Basic zoom controls UI integration
-
-### 1.6 Basic Navigation (Week 2, Day 1)
-
-- [ ] **1.5.1** Add Previous/Next buttons
-- [ ] **1.5.2** Implement arrow key navigation
-- [ ] **1.5.3** Handle edge cases (first/last image)
-- [ ] **1.5.4** Add basic keyboard shortcut system
-
-### 1.6 Layout Foundation (Week 2, Days 1-2)
-
-- [ ] **1.6.1** Create main layout component structure
-- [ ] **1.6.2** Add basic header/toolbar area
-- [ ] **1.6.3** Add main image display area
-- [ ] **1.6.4** Add status bar area
-- [ ] **1.6.5** Implement responsive grid layout
-
-### 1.8 Theme System (Week 2, Days 4-5)
-
-- [ ] **1.8.1** Setup CSS custom properties for theming
-- [ ] **1.8.2** Create light theme variables
-- [ ] **1.8.3** Create dark theme variables
-- [ ] **1.8.4** Add theme toggle in toolbar
-- [ ] **1.8.5** Persist theme preference
-
-### 1.9 File Format Support (Week 2, Days 6-7)
-
-- [ ] **1.9.1** Test JPEG support and optimization
-- [ ] **1.9.2** Test PNG support with transparency
-- [ ] **1.9.3** Test WebP format support
-- [ ] **1.9.4** Test GIF static display
-- [ ] **1.9.5** Add format detection and validation
-
-### 1.10 Polish & Testing (Week 2, Day 7)
-
-- [ ] **1.9.1** Add error boundaries and user feedback
-- [ ] **1.9.2** Improve loading states and transitions
-- [ ] **1.9.3** Test cross-platform compatibility
-- [ ] **1.9.4** Add basic accessibility features
-- [ ] **1.9.5** Create demo images for testing
-
-**Deliverable**: Basic functional image viewer
+**Deliverable**: ✅ Functional image viewer with professional UI
 
 ---
 
-## Phase 2: Enhanced Viewing (Weeks 3-4)
+## Phase 2: Design System & Polish (COMPLETED ✅)
 
-**Goal**: Advanced viewing capabilities
+**Goal**: Professional design system and code quality
 
-### 2.1 Advanced Image Handling
+### 2.1 Tailwind CSS Integration
+- [x] Tailwind CSS v4.1 setup with Vite integration
+- [x] Minimal 4-color design system (#101010, #141414, #F5F5F5, #EE3B3E)
+- [x] Mulish font integration for professional typography
+- [x] Semantic color tokens and design architecture
 
-- [ ] RAW format support (CR2, NEF, ARW, etc.)
-- [ ] TIFF, PSD basic support
-- [ ] Animated GIF/WebP playback
-- [ ] SVG rendering
-- [ ] HEIC/HEIF support
+### 2.2 Component Migration & Code Quality
+- [x] All components migrated to Tailwind utilities
+- [x] Multi-line class formatting for readability
+- [x] Complete elimination of custom CSS files
+- [x] Consistent utility-first approach
+- [x] Performance optimized with CSS purging
 
-### 2.2 Viewing Enhancements
+### 2.3 Documentation & Standards
+- [x] Comprehensive technical implementation history
+- [x] Architectural decision documentation
+- [x] Code quality standards and patterns
 
+**Deliverable**: ✅ Production-ready design system with excellent maintainability
+
+---
+
+## Phase 3: Advanced Viewing & Navigation (NEXT 🚀)
+
+**Goal**: Enhanced viewing capabilities and image navigation
+
+### 3.1 Zoom & Pan System
+- [ ] Zoom state management with Svelte 5 runes
+- [ ] Zoom in/out controls in toolbar
+- [ ] Fit-to-window and actual size (100%) modes
 - [ ] Smooth zoom with mouse wheel
-- [ ] Pan with mouse drag
-- [ ] Rotation (90°, arbitrary angles)
-- [ ] Full-screen mode
-- [ ] Dual-monitor support
-- [ ] Touch/gesture support (pinch-to-zoom)
+- [ ] Pan with mouse drag for zoomed images
+- [ ] Zoom level display in status bar
 
-### 2.3 Performance Optimization
+### 3.2 Image Navigation
+- [ ] Previous/Next image navigation in folder
+- [ ] Arrow key keyboard navigation
+- [ ] Thumbnail strip for quick navigation
+- [ ] Jump to first/last image
+- [ ] Keyboard shortcuts system (Ctrl+O, Space, etc.)
 
-- [ ] Image caching system
-- [ ] Lazy loading for large images
-- [ ] Memory management for large files
-- [ ] Hardware acceleration where possible
+### 3.3 Full-Screen & Presentation
+- [ ] Full-screen viewing mode
+- [ ] Slideshow mode with configurable timing
+- [ ] Presentation controls (play/pause/stop)
+- [ ] Transition effects between images
+- [ ] Exit full-screen with ESC key
 
-### 2.4 Metadata Display
+### 3.4 Advanced Image Handling
+- [ ] Rotation (90°, 180°, 270°)
+- [ ] Flip horizontal/vertical (non-destructive)
+- [ ] Support for animated GIF/WebP playback
+- [ ] EXIF data reading and display
+- [ ] Image properties panel with metadata
 
-- [ ] EXIF data viewer
-- [ ] Image properties panel
-- [ ] GPS location display
-- [ ] Histogram view
-
-**Deliverable**: Feature-rich image viewer with excellent performance
+**Deliverable**: Feature-rich viewer with professional navigation
 
 ---
 
-## Phase 3: Basic Editing (Weeks 5-6)
+## Phase 4: File Management & Organization
 
-**Goal**: Essential image editing capabilities
+**Goal**: Comprehensive file and folder management
 
-### 3.1 Non-destructive Editing Foundation
+### 4.1 Folder Navigation
+- [ ] Folder tree browser in sidebar
+- [ ] Recent folders and favorites
+- [ ] Breadcrumb navigation
+- [ ] Folder watching for live updates
 
-- [ ] Edit history system
-- [ ] Undo/Redo functionality
-- [ ] Layer-based editing architecture
-- [ ] Preview system
+### 4.2 File Operations
+- [ ] Copy/Move/Delete operations with confirmation
+- [ ] Rename with validation
+- [ ] File association management for "Open with"
+- [ ] Drag & drop support for files and folders
+- [ ] Multiple file selection
 
-### 3.2 Basic Editing Tools
+### 4.3 Thumbnail Browser
+- [ ] Grid view with configurable thumbnail sizes
+- [ ] Fast thumbnail generation and caching
+- [ ] Quick preview on hover
+- [ ] Sort by name, date, size, or type
+- [ ] Filter by image format
 
-- [ ] Crop tool with aspect ratio options
-- [ ] Resize with quality options
-- [ ] Rotate (90°, 180°, 270°, arbitrary)
-- [ ] Flip horizontal/vertical
-- [ ] Auto-level/Auto-contrast
-- [ ] Brightness/Contrast adjustment
+### 4.4 Search & Organization
+- [ ] Search by filename or metadata
+- [ ] Basic tagging system
+- [ ] Favorites/bookmarks for images
+- [ ] Recently viewed images list
 
-### 3.3 Color Adjustments
+**Deliverable**: Complete file management solution
 
-- [ ] Hue/Saturation/Lightness
-- [ ] Color temperature adjustment
-- [ ] Gamma correction
-- [ ] Color curves
-- [ ] Black/White point adjustment
+---
 
-### 3.4 Filters & Effects
+## Phase 5: Basic Editing & Export
 
-- [ ] Sharpen/Blur
-- [ ] Noise reduction
-- [ ] Basic filters (Sepia, B&W, etc.)
-- [ ] Red-eye removal
-- [ ] Basic retouching tools
+**Goal**: Essential non-destructive editing capabilities
+
+### 5.1 Non-Destructive Editing Foundation
+- [ ] Edit history system with undo/redo
+- [ ] Preview system for edits
+- [ ] Save vs Save As with format options
+- [ ] Edit state management
+
+### 5.2 Basic Editing Tools
+- [ ] Crop tool with aspect ratio presets
+- [ ] Resize with quality settings
+- [ ] Brightness/Contrast adjustments
+- [ ] Saturation/Hue modifications
+- [ ] Sharpen/Blur filters
+
+### 5.3 Export & Conversion
+- [ ] Format conversion (JPEG, PNG, WebP, etc.)
+- [ ] Quality/compression settings
+- [ ] Batch export for multiple images
+- [ ] Export with metadata preservation
+
+### 5.4 Print Support
+- [ ] Print preview with scaling options
+- [ ] Page layout and margins
+- [ ] Print quality settings
 
 **Deliverable**: Image viewer with basic editing capabilities
 
 ---
 
-## Phase 4: File Management & Organization (Weeks 7-8)
+## Phase 6: Performance & Advanced Features
 
-**Goal**: Comprehensive file management
+**Goal**: Professional-grade performance and advanced functionality
 
-### 4.1 Advanced File Operations
+### 6.1 Performance Optimization
+- [ ] Image caching system for faster loading
+- [ ] Memory management for large files
+- [ ] Background thumbnail generation
+- [ ] Lazy loading optimization
+- [ ] GPU acceleration where possible
 
-- [ ] Copy/Move/Delete images
-- [ ] Rename with pattern support
-- [ ] Create folders
-- [ ] File association management
-- [ ] Drag & drop support
-
-### 4.2 Thumbnail Browser
-
-- [ ] Grid view with configurable sizes
-- [ ] Fast thumbnail generation
-- [ ] Thumbnail caching
-- [ ] Quick preview on hover
-- [ ] Multi-select operations
-
-### 4.3 Organization Features
-
-- [ ] Favorite/Rating system
-- [ ] Tag/Label system
-- [ ] Search functionality
-- [ ] Filter by date/size/type
-- [ ] Collections/Albums
-
-### 4.4 Slideshow Mode
-
-- [ ] Automatic slideshow
-- [ ] Configurable timing
-- [ ] Transition effects
-- [ ] Background music support
-- [ ] Slideshow controls
-
-**Deliverable**: Complete file management and organization system
-
----
-
-## Phase 5: Batch Processing (Weeks 9-10)
-
-**Goal**: Powerful batch processing capabilities
-
-### 5.1 Batch Operations Framework
-
-- [ ] Queue-based processing system
-- [ ] Progress tracking
-- [ ] Error handling and logging
-- [ ] Pause/Resume functionality
-
-### 5.2 Batch Editing
-
-- [ ] Batch resize with multiple output formats
-- [ ] Batch format conversion
-- [ ] Batch rename with patterns
-- [ ] Batch watermarking
-- [ ] Batch color correction
-
-### 5.3 Advanced Batch Features
-
-- [ ] Custom action sequences
-- [ ] Conditional processing
-- [ ] Output folder organization
-- [ ] Quality optimization
-- [ ] EXIF data manipulation
-
-### 5.4 Automation
-
-- [ ] Watch folder functionality
-- [ ] Scheduled batch jobs
-- [ ] Command-line interface
-- [ ] Preset management
-
-**Deliverable**: Professional-grade batch processing system
-
----
-
-## Phase 6: Advanced Features (Weeks 11-12)
-
-**Goal**: Professional and power-user features
-
-### 6.1 Plugin System
-
-- [ ] Plugin architecture design
-- [ ] Plugin API development
-- [ ] Plugin manager UI
-- [ ] Sample plugins (Instagram filters, etc.)
-- [ ] Plugin store/marketplace
-
-### 6.2 Advanced Editing
-
-- [ ] Layer support
-- [ ] Masking tools
-- [ ] Advanced selection tools
-- [ ] Clone/healing tools
-- [ ] Perspective correction
-
-### 6.3 Format Support Extension
-
-- [ ] Additional RAW formats
-- [ ] Scientific image formats (DICOM, etc.)
-- [ ] Archive format browsing (ZIP, RAR)
+### 6.2 Advanced Image Support
+- [ ] RAW format support (CR2, NEF, ARW, etc.)
+- [ ] HEIC/HEIF format support
+- [ ] PSD file basic support
+- [ ] Multi-page TIFF support
 - [ ] PDF page viewing
-- [ ] Video frame extraction
 
-### 6.4 Professional Features
-
+### 6.3 Professional Tools
 - [ ] Color profile management
-- [ ] Print dialog with preview
-- [ ] Contact sheet generation
-- [ ] Comparison view (side-by-side)
-- [ ] Focus stacking
+- [ ] Histogram display
+- [ ] Focus peaking for sharp areas
+- [ ] Image comparison (side-by-side)
+- [ ] Dual monitor support
 
-**Deliverable**: Professional-grade image editing and viewing application
+### 6.4 Batch Processing
+- [ ] Batch resize and format conversion
+- [ ] Batch rename with patterns
+- [ ] Batch metadata editing
+- [ ] Progress tracking for long operations
+
+**Deliverable**: Professional-grade image viewer and processor
 
 ---
 
-## Phase 7: Modern Enhancements (Weeks 13-14)
+## Phase 7: Modern Integrations & AI Features
 
-**Goal**: Modern features and integrations
+**Goal**: Modern features and intelligent automation
 
 ### 7.1 Cloud Integration
-
-- [ ] Google Drive integration
-- [ ] OneDrive integration
-- [ ] Dropbox integration
-- [ ] Cloud sync for settings
+- [ ] Google Drive/OneDrive/Dropbox integration
+- [ ] Cloud sync for settings and favorites
 - [ ] Remote image viewing
+- [ ] Shared image collections
 
 ### 7.2 AI-Powered Features
-
-- [ ] Auto-tagging with AI
+- [ ] Auto-tagging with AI recognition
 - [ ] Smart cropping suggestions
-- [ ] Object removal
-- [ ] Upscaling with AI
-- [ ] Style transfer filters
+- [ ] Object detection and removal
+- [ ] Image upscaling with AI
+- [ ] Automatic organization by content
 
 ### 7.3 Collaboration Features
-
-- [ ] Image sharing with links
-- [ ] Annotation tools
-- [ ] Comment system
-- [ ] Version history
+- [ ] Image sharing with secure links
+- [ ] Annotation and comment system
+- [ ] Version history for edited images
 - [ ] Team workspaces
 
-### 7.4 Advanced UI/UX
-
-- [ ] Customizable toolbars
-- [ ] Workspace layouts
-- [ ] Gesture customization
-- [ ] Voice commands
-- [ ] Accessibility improvements
-
-**Deliverable**: Modern, AI-enhanced image editor
+**Deliverable**: Modern, AI-enhanced image management platform
 
 ---
 
-## Phase 8: Polish & Distribution (Weeks 15-16)
+## Phase 8: Platform Integration & Distribution
 
-**Goal**: Production-ready application
+**Goal**: Native platform integration and professional distribution
 
-### 8.1 Performance Optimization
+### 8.1 Platform Integration
+- [ ] System file association management
+- [ ] Context menu integration (right-click to open)
+- [ ] Thumbnail generation for OS file managers
+- [ ] System notifications
+- [ ] Global keyboard shortcuts
 
-- [ ] Memory usage optimization
-- [ ] Startup time improvement
-- [ ] Large file handling
-- [ ] Multi-threading optimization
-- [ ] GPU acceleration
+### 8.2 Customization & Accessibility
+- [ ] Theme system (light/dark/custom)
+- [ ] Customizable keyboard shortcuts
+- [ ] UI layout customization
+- [ ] Accessibility compliance (WCAG 2.1)
+- [ ] Multi-language support
 
-### 8.2 Testing & Quality Assurance
-
-- [ ] Comprehensive test suite
+### 8.3 Quality Assurance & Distribution
+- [ ] Comprehensive automated testing
 - [ ] Performance benchmarking
-- [ ] Cross-platform testing
-- [ ] Accessibility testing
-- [ ] Security audit
-
-### 8.3 Documentation & Help
-
-- [ ] User manual
-- [ ] Video tutorials
-- [ ] Keyboard shortcut reference
-- [ ] Plugin development guide
-- [ ] API documentation
-
-### 8.4 Distribution
-
+- [ ] Cross-platform compatibility testing
+- [ ] Security audit and code signing
 - [ ] Auto-updater system
-- [ ] App store submissions
-- [ ] Website and landing page
-- [ ] Marketing materials
-- [ ] Community building
+
+### 8.4 Documentation & Community
+- [ ] User manual and help system
+- [ ] Video tutorials and getting started guide
+- [ ] Plugin development API
+- [ ] Community website and support
 
 **Deliverable**: Production-ready application ready for distribution
 
 ---
 
-## 🛠️ Technical Stack
+## 🛠️ Technology Stack
 
 ### Frontend
-
 - **Framework**: Svelte 5 with runes
 - **Build Tool**: SvelteKit + Vite
-- **Styling**: CSS with custom properties (CSS variables)
+- **Styling**: Tailwind CSS v4.1 with custom design system
 - **State Management**: Svelte 5 runes with custom stores
-- **UI Components**: Custom component library
-- **Icons**: Lucide or Heroicons
+- **Typography**: Mulish Google Font
 
 ### Backend (Rust)
-
 - **Framework**: Tauri 2
 - **Image Processing**: `image` crate, `imageproc`
-- **File System**: Tauri filesystem API
+- **File System**: Tauri filesystem API with capabilities
 - **Performance**: `rayon` for parallelization
 - **Serialization**: `serde`
-- **Database**: `rusqlite` for metadata/settings
-
-### Additional Libraries
-
-- **Image Formats**: `image`, `raw-formats`, `pdf-extract`
-- **UI Interactions**: Custom gesture handling
-- **Shortcuts**: Tauri global shortcuts
-- **Notifications**: Tauri notifications
 
 ---
 
 ## 📊 Success Metrics
 
 ### Performance Targets
-
 - [ ] Startup time < 2 seconds
-- [ ] Image load time < 500ms (for typical photos)
+- [ ] Image load time < 500ms for typical photos
 - [ ] Memory usage < 200MB idle, < 1GB with large images
 - [ ] Smooth 60fps UI interactions
 
 ### Feature Completion
-
-- [ ] Support for 50+ image formats
-- [ ] 100+ keyboard shortcuts
-- [ ] 20+ editing tools
+- [ ] Support for 25+ image formats
+- [ ] 50+ keyboard shortcuts
+- [ ] 15+ editing tools
 - [ ] Cross-platform compatibility (Windows, macOS, Linux)
 
 ### User Experience
-
 - [ ] Intuitive UI requiring minimal learning
-- [ ] Accessibility compliance (WCAG 2.1)
-- [ ] Multi-language support
+- [ ] Professional design with consistent 4-color palette
+- [ ] Accessibility compliance
 - [ ] Comprehensive help system
 
 ---
 
-## 🔄 Iteration Notes
+## 🚀 Next Steps
 
-This roadmap is living document that will be updated as we progress. Each phase includes:
+### **Current Status**: Phase 2 Complete ✅ - Ready for Phase 3
 
-- **Entry Criteria**: What must be completed before starting
-- **Exit Criteria**: What must be delivered to complete the phase
-- **Review Points**: Weekly reviews to assess progress
-- **Flexibility**: Ability to adjust scope based on discoveries
+**Last Achievement**: Complete Tailwind CSS migration with professional design system
 
----
+### **Immediate Next Task (3.1.1)**: Implement Zoom System
 
-## 🚀 Getting Started
-
-### **Current Status**: Phase 1.3 Complete ✅ - Ready for Phase 1.4
-
-**Last Achievement**: Image display functionality working perfectly with comprehensive logging system
-
-### **Immediate Next Task (1.4.1)**: Create Top Toolbar Component
-
-**Estimated Time**: 45 minutes  
-**Goal**: Create a clean top toolbar with open image functionality
+**Estimated Time**: 1-2 hours  
+**Goal**: Add zoom state management and basic zoom controls
 
 **Steps**:
+1. Create zoom store with Svelte 5 runes
+2. Add zoom in/out buttons to toolbar
+3. Implement fit-to-window and actual size modes
+4. Update ImageViewer to respect zoom level
 
-1. Create `Toolbar.svelte` component following Svelte 5 runes pattern
-2. Add open image button with emoji icon (📁 or 🖼️)
-3. Integrate with existing file service
-4. Style with modern, clean design
+### **This Week's Target**: Complete Phase 3.1 (Zoom & Pan System)
 
-### **Today's Target**: Complete tasks 1.4.1 through 1.4.3
+**Estimated Time**: 4-6 hours  
+**Outcome**: Professional zoom and pan functionality
 
-**Estimated Time**: 2-3 hours  
-**Outcome**: Clean layout with top/bottom bars and proper default state
+### **Next Sprint Goal**: Complete Phase 3 (Advanced Viewing & Navigation)
 
-### **This Week's Goal**: Complete Phase 1.4-1.5 (Layout + Zoom)
-
-**Outcome**: Professional layout with working zoom functionality
-
----
-
-## 📅 Daily Breakdown for Week 1-2
-
-### **Day 1-4**: Foundation Complete ✅
-
-- ✅ File System Foundation (Tasks 1.2.1-1.2.5)
-- ✅ Basic Image Display (Tasks 1.3.1-1.3.5)
-
-### **Day 5-6**: Layout & UI Foundation (Phase 1.4)
-
-- [ ] **Morning**: Tasks 1.4.1-1.4.2 (Top toolbar & bottom status bar)
-- [ ] **Afternoon**: Tasks 1.4.3-1.4.5 (Default state & responsive layout)
-
-### **Day 7**: Simple Zoom (Phase 1.5)
-
-- [ ] **Morning**: Tasks 1.5.1-1.5.3 (Zoom state & controls)
-- [ ] **Afternoon**: Tasks 1.5.4-1.5.5 (Zoom modes & UI integration)
-
-### **Week 2**: Enhanced Features
-
-- [ ] **Day 1**: Basic Navigation (Phase 1.6)
-- [ ] **Day 2-3**: Enhanced File Operations (Phase 1.7)
-- [ ] **Day 4-5**: Theme System (Phase 1.8)
-- [ ] **Day 6-7**: File Format Support & Polish (Phase 1.9-1.10)
+**Outcome**: Feature-complete image viewer with navigation and presentation modes
 
 ---
 
-_Last Updated: November 27, 2025_  
-_Status: Phase 1.3 Complete ✅ - Basic Image Display Working_
-
-## Recent Achievements ✅
-
-### Image Loading Success (November 27, 2025)
-
-- **Fixed Critical Issue**: Images now loading successfully after asset protocol configuration
-- **Enhanced Logging**: Implemented comprehensive debug logging system with runtime controls
-- **Advanced Architecture**: Created dedicated logger utility following coding instructions
-- **Performance**: Image loading working smoothly (tested with 3.54 MB JPG file)
-- **Error Handling**: Comprehensive validation and error recovery system
-- **State Management**: Proper reactive state management with Svelte 5 runes
-
-### Technical Improvements Made
-
-- **Asset Protocol**: Fixed Tauri v2 asset serving configuration for local file access
-- **Debug System**: Runtime-controllable logging with localStorage persistence
-- **File Service**: Enhanced with detailed operational logging and error tracking
-- **Dependencies**: Added chrono for proper timestamp handling
-- **Validation**: Platform-specific file path validation and security checks
-
-### Current Working Features
-
-- ✅ File dialog with image format filtering
-- ✅ File path validation and security checks
-- ✅ File metadata extraction (size, modification date, format)
-- ✅ Image loading with proper asset URL conversion
-- ✅ Responsive image display with scaling
-- ✅ Loading states and error handling
-- ✅ Two-column layout (FileExplorer + ImageViewer)
-- ✅ Comprehensive logging and debugging system
+_Last Updated: November 28, 2025_  
+_Current Phase: Ready for Phase 3 - Advanced Viewing & Navigation 🚀_

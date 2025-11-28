@@ -10,7 +10,7 @@ Kahveci View is a modern image viewer application built with Tauri 2, Svelte 5, 
 
 - **Framework**: Svelte 5 with runes for reactive state management
 - **Build Tool**: SvelteKit + Vite for optimal development experience
-- **Styling**: CSS with custom properties for theming support
+- **Styling**: Tailwind CSS v4.1 with custom 4-color design system
 - **State Management**: Custom Svelte 5 rune-based stores following pattern from copilot instructions
 
 ### Backend Stack
@@ -419,8 +419,53 @@ src-tauri/
 - Semantic color naming enables easy theme customization
 - Complete migration achieves consistency and maintainability goals
 
+### Phase 2.5: Roadmap Optimization (Completed ✅)
+
+**Date**: November 26, 2025  
+**Context**: Project planning and organization optimization
+
+**Optimization Rationale**:
+
+After completing the design system migration, reorganized the development roadmap to improve logical flow and phase organization.
+
+**Improvements Made**:
+
+1. **Phase Restructuring**:
+
+   - Restructured from scattered phases to 8 logical development phases
+   - Clear progression from foundation → core features → advanced features → distribution
+
+2. **Phase Organization**:
+
+   - **Phase 1-2**: Foundation & Core Viewing + Design System (COMPLETED)
+   - **Phase 3**: Advanced Viewing & Navigation (zoom, full-screen, navigation)
+   - **Phase 4**: File Management (operations, metadata, batch processing)
+   - **Phase 5**: Basic Editing (crop, rotate, resize, filters)
+   - **Phase 6**: Performance & Advanced Features (caching, formats, comparison)
+   - **Phase 7**: Modern Integrations (AI features, cloud, plugins)
+   - **Phase 8**: Platform Integration & Distribution (stores, auto-update, advanced features)
+
+3. **Documentation Quality**:
+   - Each phase now has clear goals and deliverables
+   - Better task organization with logical dependencies
+   - Clearer progression path for development
+
+**Files Modified**:
+
+- `ROADMAP.md`: Complete reorganization with 8 logical phases
+- Preserved old roadmap as `ROADMAP_OLD.md` for reference
+
+**Impact**:
+
+- Improved project planning and development flow
+- Clearer understanding of feature dependencies
+- Better organization for future development phases
+
+**Next Steps**:
+Ready to begin Phase 3 (Advanced Viewing & Navigation) with zoom system implementation using Svelte 5 runes state management.
+
 ---
 
 _Last Updated: November 28, 2025_  
-_Current Phase: 2.1 - Tailwind CSS Migration (COMPLETED ✅)_  
-_Next Milestone: Phase 3 - Enhanced Features Planning_
+_Current Phase: 2.5 - Roadmap Optimization (COMPLETED ✅)_  
+_Next Milestone: Phase 3 - Advanced Viewing & Navigation_
