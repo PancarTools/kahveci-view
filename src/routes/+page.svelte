@@ -19,10 +19,10 @@
 	<meta name="description" content="A fast, modern image viewer built with Tauri and Svelte" />
 </svelte:head>
 
-<div class="app-layout">
+<div class="flex flex-col h-screen w-screen bg-bg">
 	<Toolbar />
 	
-	<main class="main-content">
+	<main class="flex-1 flex items-center justify-center bg-bg p-5 overflow-hidden relative">
 		{#if fileService.currentFile}
 			<ImageViewer />
 		{:else}
@@ -32,45 +32,3 @@
 
 	<StatusBar />
 </div>
-
-<style>
-	:global(html, body) {
-		margin: 0;
-		padding: 0;
-		height: 100%;
-		overflow: hidden;
-		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-		background: #101010;
-		color: #ffffff;
-	}
-
-	:global(*, *::before, *::after) {
-		box-sizing: border-box;
-	}
-
-	.app-layout {
-		display: flex;
-		flex-direction: column;
-		height: 100vh;
-		width: 100vw;
-		background: #101010;
-	}
-
-	.main-content {
-		flex: 1;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		background: #101010;
-		padding: 20px;
-		overflow: hidden;
-		position: relative;
-	}
-
-	/* Ensure proper scrolling on smaller screens */
-	@media (max-height: 600px) {
-		.main-content {
-			padding: 10px;
-		}
-	}
-</style>

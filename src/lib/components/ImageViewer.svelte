@@ -110,31 +110,62 @@
 	});
 </script>
 
-<div class="image-viewer">
+<div 
+	class="w-full h-full 
+	       flex flex-col 
+	       bg-transparent 
+	       relative overflow-hidden"
+>
 	{#if imageSource}
-		<div class="image-container">
+		<div 
+			class="flex-1 
+			       flex flex-col 
+			       relative w-full h-full"
+		>
 			{#if fileService.isLoading}
-				<div class="loading">
-					<div class="loading-spinner"></div>
-					<p>Loading image...</p>
+				<div 
+					class="flex-1 
+					       flex flex-col items-center justify-center 
+					       p-8 text-center"
+				>
+					<div 
+						class="w-8 h-8 
+						       border-2 border-text/20 border-t-text 
+						       rounded-full 
+						       animate-spin"
+					></div>
+					<p class="mt-2 m-0 text-text/80">Loading image...</p>
 				</div>
 			{:else if imageError}
-				<div class="error">
-					<div class="error-icon">❌</div>
-					<h3>Failed to Load Image</h3>
-					<p>Could not display: {fileService.currentFile?.name || 'Unknown file'}</p>
-					<p class="error-detail">The image file may be corrupted or in an unsupported format.</p>
+				<div 
+					class="flex-1 
+					       flex flex-col items-center justify-center 
+					       p-8 text-center 
+					       text-accent"
+				>
+					<div class="text-3xl mb-2">❌</div>
+					<h3 class="m-0 mb-2 text-lg">Failed to Load Image</h3>
+					<p class="m-1 text-text">Could not display: {fileService.currentFile?.name || 'Unknown file'}</p>
+					<p class="m-1 text-sm opacity-80">The image file may be corrupted or in an unsupported format.</p>
 				</div>
 			{:else}
-				<div class="image-wrapper">
+				<div 
+					class="flex-1 
+					       flex items-center justify-center 
+					       p-5 
+					       relative w-full h-full"
+				>
 					<img
 						bind:this={imageElement}
 						src={imageSource}
 						alt={fileService.currentFile?.name || 'Image'}
 						onload={handleImageLoad}
 						onerror={handleImageError}
-						class="main-image"
-						class:loaded={imageLoaded}
+						class="max-w-full max-h-full 
+						       object-contain 
+						       rounded shadow-lg 
+						       opacity-0 transition-opacity duration-300 ease-in-out"
+						class:opacity-100={imageLoaded}
 						onloadstart={(e) => {
 							console.log('[ImageViewer] Image load started for:', e.currentTarget.src);
 							logTauri(`[ImageViewer] Image load started: ${e.currentTarget.src}`, "debug");
@@ -153,8 +184,18 @@
 					/>
 					
 					{#if !imageLoaded}
-						<div class="image-loading">
-							<div class="loading-spinner"></div>
+						<div 
+							class="absolute top-1/2 left-1/2 
+							       transform -translate-x-1/2 -translate-y-1/2 
+							       flex flex-col items-center 
+							       gap-2"
+						>
+							<div 
+								class="w-8 h-8 
+								       border-2 border-text/20 border-t-text 
+								       rounded-full 
+								       animate-spin"
+							></div>
 						</div>
 					{/if}
 				</div>
@@ -163,111 +204,4 @@
 	{/if}
 </div>
 
-<style>
-	.image-viewer {
-		width: 100%;
-		height: 100%;
-		display: flex;
-		flex-direction: column;
-		background: transparent;
-		position: relative;
-		overflow: hidden;
-	}
 
-	.image-container {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		position: relative;
-		width: 100%;
-		height: 100%;
-	}
-
-	.image-wrapper {
-		flex: 1;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		padding: 20px;
-		position: relative;
-		width: 100%;
-		height: 100%;
-	}
-
-	.main-image {
-		max-width: 100%;
-		max-height: 100%;
-		object-fit: contain;
-		border-radius: 4px;
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-		opacity: 0;
-		transition: opacity 0.3s ease;
-	}
-
-	.main-image.loaded {
-		opacity: 1;
-	}
-
-	.image-loading {
-		position: absolute;
-		top: 50%;
-		left: 50%;
-		transform: translate(-50%, -50%);
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 0.5rem;
-	}
-
-	.loading, .error {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		padding: 2rem;
-		text-align: center;
-	}
-
-	.loading-spinner {
-		width: 32px;
-		height: 32px;
-		border: 3px solid #f3f3f3;
-		border-top: 3px solid #007bff;
-		border-radius: 50%;
-		animation: spin 1s linear infinite;
-	}
-
-	@keyframes spin {
-		0% { transform: rotate(0deg); }
-		100% { transform: rotate(360deg); }
-	}
-
-	.loading p {
-		margin: 0.5rem 0 0 0;
-		color: #cccccc;
-	}
-
-	.error {
-		color: #ff6b6b;
-	}
-
-	.error-icon {
-		font-size: 2rem;
-		margin-bottom: 0.5rem;
-	}
-
-	.error h3 {
-		margin: 0 0 0.5rem 0;
-		font-size: 1.1rem;
-	}
-
-	.error p {
-		margin: 0.25rem 0;
-	}
-
-	.error-detail {
-		font-size: 0.85rem;
-		opacity: 0.8;
-	}
-</style>

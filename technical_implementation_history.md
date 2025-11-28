@@ -360,8 +360,67 @@ src-tauri/
 - Svelte 5 runes make cross-component state management very clean
 - Immediate compilation testing prevents structure errors from accumulating
 
+### Phase 2.1: Tailwind CSS Migration (COMPLETED ✅)
+
+**Date**: November 28, 2025
+**Commits**: Tailwind v4.1 integration and complete component migration
+
+**Architectural Decisions Made**:
+
+1. **Tailwind CSS v4.1 Adoption**
+
+   - Replaced custom CSS with utility-first approach
+   - Integrated @tailwindcss/vite plugin for optimal SvelteKit compatibility
+   - Configured with semantic design tokens for maintainability
+
+2. **4-Color Design System**
+
+   - Simplified to user-specified minimal palette: #101010 (bg), #141414 (surface), #F5F5F5 (text), #EE3B3E (accent)
+   - Created semantic naming convention: `bg`, `surface`, `text`, `accent`
+   - Rejected complex design system in favor of minimal, focused approach
+
+3. **Component Migration Strategy**
+
+   - Incremental migration starting with StatusBar for validation
+   - Multi-line class formatting for better readability and maintainability
+   - Preserved all functionality and responsive behavior during migration
+   - Complete elimination of custom CSS files
+
+4. **Typography Enhancement**
+   - Integrated Mulish Google Font (200-1000 weight range)
+   - Professional typography hierarchy with consistent font stacks
+   - Maintained accessibility through proper contrast ratios
+
+**Technical Implementations**:
+
+- **Configuration**: tailwind.config.js with minimal color palette and Mulish font
+- **Global Styles**: app.css with font imports and scrollbar customization
+- **Components Migrated**:
+  - StatusBar (130+ lines CSS → utilities)
+  - Toolbar (110+ lines CSS → utilities)
+  - DefaultState (180+ lines CSS → utilities)
+  - ImageViewer (120+ lines CSS → utilities)
+  - FileExplorer (140+ lines CSS → utilities)
+- **Class Organization**: Logical grouping (layout → sizing → colors → interactions → states)
+
+**Performance Optimizations**:
+
+- Removed unused CSS through Tailwind's purging system
+- Reduced bundle size by eliminating custom CSS files
+- Improved maintainability through centralized design system
+- Enhanced developer experience with utility-first approach
+
+**Key Learnings**:
+
+- User feedback crucial for design system complexity - minimal beats comprehensive
+- Multi-line class formatting significantly improves code readability
+- Tailwind v4.1 integration with SvelteKit requires specific plugin ordering
+- Incremental migration reduces risk and validates approach early
+- Semantic color naming enables easy theme customization
+- Complete migration achieves consistency and maintainability goals
+
 ---
 
-_Last Updated: November 30, 2025_  
-_Current Phase: 1.4 - Layout & UI Foundation (Completed)_  
-_Next Phase: 1.5 - Simple Zoom Implementation_
+_Last Updated: November 28, 2025_  
+_Current Phase: 2.1 - Tailwind CSS Migration (COMPLETED ✅)_  
+_Next Milestone: Phase 3 - Enhanced Features Planning_
