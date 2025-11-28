@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { getFileService } from '$lib/stores/fileService.svelte';
+	import { Image, FolderOpen, Keyboard } from '$lib/icons';
 
 	const fileService = getFileService();
 
@@ -42,7 +43,9 @@
 	<div class="text-center p-8 max-w-80 w-full">
 		<div class="mb-6">
 			<div class="mb-4">
-				<div class="text-6xl md:text-5xl inline-block m-0 drop-shadow-sm">🖼️</div>
+				<div class="text-6xl md:text-5xl inline-block m-0 drop-shadow-sm">
+					<Image class="w-16 h-16 md:w-14 md:h-14 text-text/80" />
+				</div>
 			</div>
 			<div class="m-0">
 				<h2 class="m-0 mb-2 text-2xl md:text-xl font-bold text-text leading-tight">Welcome to Kahveci View</h2>
@@ -60,7 +63,7 @@
 			       active:translate-y-0 active:shadow-sm" 
 			onclick={handleOpenImage}
 		>
-			<span class="text-lg">📁</span>
+			<FolderOpen class="w-4 h-4" />
 			Open Image
 		</button>
 
@@ -71,7 +74,7 @@
 
 		<div class="flex flex-col gap-1.5 max-sm:hidden">
 			<div class="flex items-center gap-1.5 text-xs text-text/50 justify-center">
-				<span class="text-sm opacity-80">⌨️</span>
+				<Keyboard class="w-3 h-3 opacity-80" />
 				<span class="font-medium">Press Ctrl+O to open</span>
 			</div>
 			<div class="flex items-center gap-1.5 text-xs text-text/50 justify-center">

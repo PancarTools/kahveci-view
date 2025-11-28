@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { getFileService } from '$lib/stores/fileService.svelte';
 	import { logger } from '$lib/utils/logger';
+	import { FolderOpen } from '$lib/icons';
 
 	const fileService = getFileService();
 
@@ -30,7 +31,7 @@
 			disabled={fileService.isLoading}
 			title="Open Image (Ctrl+O)"
 		>
-			<span class="text-base leading-none">📁</span>
+			<FolderOpen class="w-4 h-4" />
 			<span class="whitespace-nowrap md:hidden">Open Image</span>
 		</button>
 	</div>

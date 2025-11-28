@@ -1,5 +1,6 @@
 <script>
 	import { getFileService } from '$lib/stores/fileService.svelte';
+	import { Folder, FileText, XCircle } from '$lib/icons';
 
 	const fileService = getFileService();
 
@@ -46,14 +47,8 @@
 			class:text-yellow-800={fileService.error.includes('Unsupported') || fileService.error.includes('invalid') || fileService.error.includes('reserved')}
 		>
 			<div class="flex items-start gap-2 flex-1">
-				<span class="text-lg leading-none">
-					{#if fileService.error.includes('Unsupported') || fileService.error.includes('format')}
-						⚠️
-					{:else if fileService.error.includes('invalid') || fileService.error.includes('unsafe')}
-						🚫
-					{:else}
-						❌
-					{/if}
+				<span class="leading-none">
+					<XCircle class="w-5 h-5 text-accent" />
 				</span>
 				<span class="flex-1 leading-relaxed">{fileService.error}</span>
 			</div>
@@ -79,18 +74,27 @@
 			       border border-surface/30 
 			       shadow-sm"
 		>
-			<h3 class="m-0 mb-4 text-text text-lg">📁 Current File</h3>
+			<h3 class="m-0 mb-4 text-text text-lg flex items-center gap-2">
+				<Folder class="w-5 h-5" />
+				Current File
+			</h3>
 			<div 
 				class="flex flex-col 
 				       gap-3 
 				       mb-4"
 			>
 				<div class="flex items-start gap-2">
-					<span class="min-w-20 font-medium text-text/70 text-sm">📄 Name:</span>
-					<span class="flex-1 text-text text-sm break-words">{fileService.currentFile.name}</span>
+					<span class="min-w-20 font-medium text-text/70 text-sm flex items-center gap-1">
+						<FileText class="w-3 h-3" />
+						Name:
+					</span>
+					<span class="flex-1 text-text text-sm wrap-break-word">{fileService.currentFile.name}</span>
 				</div>
 				<div class="flex items-start gap-2">
-					<span class="min-w-20 font-medium text-text/70 text-sm">📂 Path:</span>
+					<span class="min-w-20 font-medium text-text/70 text-sm flex items-center gap-1">
+						<Folder class="w-3 h-3" />
+						Path:
+					</span>
 					<span 
 						class="flex-1 text-text text-xs font-mono 
 						       bg-bg px-2 py-1 rounded 
@@ -103,15 +107,15 @@
 				</div>
 				<div class="flex items-start gap-2">
 					<span class="min-w-20 font-medium text-text/70 text-sm">🏷️ Type:</span>
-					<span class="flex-1 text-text text-sm break-words">{fileService.currentFile.extension.toUpperCase()}</span>
+					<span class="flex-1 text-text text-sm wrap-break-word">{fileService.currentFile.extension.toUpperCase()}</span>
 				</div>
 				<div class="flex items-start gap-2">
 					<span class="min-w-20 font-medium text-text/70 text-sm">📏 Size:</span>
-					<span class="flex-1 text-text text-sm break-words">{fileService.currentFile.formattedSize}</span>
+					<span class="flex-1 text-text text-sm wrap-break-word">{fileService.currentFile.formattedSize}</span>
 				</div>
 				<div class="flex items-start gap-2">
 					<span class="min-w-20 font-medium text-text/70 text-sm">🕒 Modified:</span>
-					<span class="flex-1 text-text text-sm break-words">{fileService.currentFile.lastModified.toLocaleString()}</span>
+					<span class="flex-1 text-text text-sm wrap-break-word">{fileService.currentFile.lastModified.toLocaleString()}</span>
 				</div>
 			</div>
 			<button 

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { getFileService } from '$lib/stores/fileService.svelte';
+	import { Folder, Image, CheckCircle, XCircle, Loader2 } from '$lib/icons';
 
 	const fileService = getFileService();
 
@@ -30,10 +31,12 @@
 			<span 
 				class="font-mono text-xs md:text-[10px] text-text 
 				       max-w-[200px] md:max-w-[120px] 
-				       overflow-hidden text-ellipsis whitespace-nowrap" 
+				       overflow-hidden text-ellipsis whitespace-nowrap
+				       flex items-center gap-1" 
 				title={fileService.currentFile.path}
 			>
-				📂 {getDisplayPath(fileService.currentFile.path)}
+				<Folder class="w-3 h-3 shrink-0" />
+				{getDisplayPath(fileService.currentFile.path)}
 			</span>
 		{:else}
 			<span class="italic text-text/60">No image loaded</span>
@@ -46,8 +49,9 @@
 				class="flex items-center gap-1.5 md:gap-1 
 				       whitespace-nowrap overflow-hidden text-ellipsis"
 			>
-				<span class="font-medium text-text">
-					📐 {fileService.currentFile.name}
+				<span class="font-medium text-text flex items-center gap-1">
+					<Image class="w-3 h-3 shrink-0" />
+					{fileService.currentFile.name}
 				</span>
 				<span class="text-text/40 font-normal">•</span>
 				<span class="font-semibold text-text font-mono">
@@ -62,15 +66,19 @@
 	</div>
 
 	<div class="flex items-center gap-2 flex-none min-w-[150px] md:min-w-[100px] max-sm:flex-1">
-		<span class="font-medium">
+		<span class="font-medium flex items-center gap-1">
 			{#if fileService.isLoading}
-				⏳ Loading...
+				<Loader2 class="w-3 h-3 animate-spin" />
+				Loading...
 			{:else if fileService.error}
-				❌ Error
+				<XCircle class="w-3 h-3 text-accent" />
+				Error
 			{:else if fileService.currentFile}
-				✅ Ready
+				<CheckCircle class="w-3 h-3 text-green-400" />
+				Ready
 			{:else}
-				💤 Idle
+				<div class="w-3 h-3 bg-text/30 rounded-full"></div>
+				Idle
 			{/if}
 		</span>
 		<span class="text-text/40 font-normal">•</span>

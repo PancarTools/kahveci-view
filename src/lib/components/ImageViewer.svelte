@@ -2,6 +2,7 @@
 	import { getFileService } from '$lib/stores/fileService.svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import { invoke } from '@tauri-apps/api/core';
+	import { XCircle } from '$lib/icons';
 
 	const fileService = getFileService();
 
@@ -143,7 +144,9 @@
 					       p-8 text-center 
 					       text-accent"
 				>
-					<div class="text-3xl mb-2">❌</div>
+					<div class="mb-2">
+						<XCircle class="w-8 h-8 text-accent mx-auto" />
+					</div>
 					<h3 class="m-0 mb-2 text-lg">Failed to Load Image</h3>
 					<p class="m-1 text-text">Could not display: {fileService.currentFile?.name || 'Unknown file'}</p>
 					<p class="m-1 text-sm opacity-80">The image file may be corrupted or in an unsupported format.</p>
