@@ -64,7 +64,6 @@
 	}
 
 	// Shared button styles - minimal with hover background
-	// Shared button styles - minimal with hover background
 	const buttonClass = `
 		flex items-center justify-center
 		w-8 h-8 
@@ -75,10 +74,13 @@
 		disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none
 	`.trim().replace(/\s+/g, ' ');
 
+	// Icon size for toolbar buttons
+	const iconClass = "w-4.5 h-4.5";
+
 	// macOS-style window control button styles with semantic colors
 	const macOSCloseButtonClass = `
 		flex items-center justify-center
-		w-3.5 h-3.5 
+		w-3 h-3 
 		bg-traffic-red text-transparent
 		cursor-pointer transition-all duration-200 ease-out 
 		hover:bg-traffic-red-hover hover:text-traffic-red-text rounded-full
@@ -88,7 +90,7 @@
 	
 	const macOSMinimizeButtonClass = `
 		flex items-center justify-center
-		w-3.5 h-3.5 
+		w-3 h-3 
 		bg-traffic-yellow text-transparent
 		cursor-pointer transition-all duration-200 ease-out 
 		hover:bg-traffic-yellow-hover hover:text-traffic-yellow-text rounded-full
@@ -98,13 +100,16 @@
 	
 	const macOSMaximizeButtonClass = `
 		flex items-center justify-center
-		w-3.5 h-3.5 
+		w-3 h-3 
 		bg-traffic-green text-transparent
 		cursor-pointer transition-all duration-200 ease-out 
 		hover:bg-traffic-green-hover hover:text-traffic-green-text rounded-full
 		active:scale-90
 		border border-traffic-green-hover/30 shadow-sm
 	`.trim().replace(/\s+/g, ' ');
+
+	// Icon size for traffic light buttons
+	const trafficIconClass = "w-2.5 h-2.5";
 </script>
 
 <!-- Toolbar with custom drag handling -->
@@ -132,7 +137,7 @@
 			disabled={fileService.isLoading}
 			title="Open Image (Ctrl+O)"
 		>
-			<FolderOpen class="w-4 h-4" />
+			<FolderOpen class={iconClass} />
 		</button>
 
 		<button 
@@ -141,7 +146,7 @@
 			disabled={!fileService.currentFile}
 			title="Save (Ctrl+S)"
 		>
-			<Save class="w-4 h-4" />
+			<Save class={iconClass} />
 		</button>
 
 		<button 
@@ -150,7 +155,7 @@
 			disabled={!fileService.currentFile}
 			title="Print (Ctrl+P)"
 		>
-			<Printer class="w-4 h-4" />
+			<Printer class={iconClass} />
 		</button>
 
 		<button 
@@ -158,7 +163,7 @@
 			onclick={handleOpenFolder}
 			title="Open Folder (Gallery View)"
 		>
-			<FolderTree class="w-4 h-4" />
+			<FolderTree class={iconClass} />
 		</button>
 
 		<!-- Separator -->
@@ -171,7 +176,7 @@
 			disabled={true}
 			title="Undo (Ctrl+Z)"
 		>
-			<Undo class="w-4 h-4" />
+			<Undo class={iconClass} />
 		</button>
 
 		<button 
@@ -180,7 +185,7 @@
 			disabled={true}
 			title="Redo (Ctrl+Y)"
 		>
-			<Redo class="w-4 h-4" />
+			<Redo class={iconClass} />
 		</button>
 
 		<button 
@@ -188,7 +193,7 @@
 			onclick={handleSelectMode}
 			title="Select Mode"
 		>
-			<MousePointer class="w-4 h-4" />
+			<MousePointer class={iconClass} />
 		</button>
 
 		<button 
@@ -197,7 +202,7 @@
 			disabled={!fileService.currentFile}
 			title="Copy (Ctrl+C)"
 		>
-			<Copy class="w-4 h-4" />
+			<Copy class={iconClass} />
 		</button>
 
 		<button 
@@ -206,7 +211,7 @@
 			disabled={true}
 			title="Paste (Ctrl+V)"
 		>
-			<Clipboard class="w-4 h-4" />
+			<Clipboard class={iconClass} />
 		</button>
 
 		<button 
@@ -215,7 +220,7 @@
 			disabled={!fileService.currentFile}
 			title="Cut (Ctrl+X)"
 		>
-			<Scissors class="w-4 h-4" />
+			<Scissors class={iconClass} />
 		</button>
 
 		<button 
@@ -224,7 +229,7 @@
 			disabled={!fileService.currentFile}
 			title="Crop"
 		>
-			<Crop class="w-4 h-4" />
+			<Crop class={iconClass} />
 		</button>
 
 		<button 
@@ -233,7 +238,7 @@
 			disabled={!fileService.currentFile}
 			title="Rotate Left (Ctrl+L)"
 		>
-			<RotateCcw class="w-4 h-4" />
+			<RotateCcw class={iconClass} />
 		</button>
 
 		<button 
@@ -242,7 +247,7 @@
 			disabled={!fileService.currentFile}
 			title="Rotate Right (Ctrl+R)"
 		>
-			<RotateCw class="w-4 h-4" />
+			<RotateCw class={iconClass} />
 		</button>
 	</div>
 
@@ -253,7 +258,7 @@
 			onclick={handleMinimize}
 			title="Minimize"
 		>
-			<Minus class="w-2.5 h-2.5" />
+			<Minus class={trafficIconClass} />
 		</button>
 		
 		<button 
@@ -261,7 +266,7 @@
 			onclick={handleMaximize}
 			title="Maximize"
 		>
-			<WindowSquare class="w-2.5 h-2.5" />
+			<WindowSquare class={trafficIconClass} />
 		</button>
 		
 		<button 
@@ -269,7 +274,7 @@
 			onclick={handleClose}
 			title="Close"
 		>
-			<X class="w-2.5 h-2.5" />
+			<X class={trafficIconClass} />
 		</button>
 	</div>
 </div>
