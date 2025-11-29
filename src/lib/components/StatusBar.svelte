@@ -21,67 +21,64 @@
 
 <div 
 	class="flex items-center justify-between 
-	       h-8 md:h-7 
-	       bg-surface border-t border-surface 
-	       px-4 md:px-3 text-xs md:text-[11px] text-text 
+	       h-10 
+	       bg-brand-darker border-t border-brand-subtle 
+	       px-6 text-sm text-brand-muted 
 	       select-none relative z-10"
 >
-	<div class="flex items-center gap-2 flex-none min-w-[150px] md:min-w-[100px]">
+	<div class="flex items-center gap-3 flex-none">
 		{#if fileService.currentFile}
 			<span 
-				class="font-mono text-xs md:text-[10px] text-text 
-				       max-w-[200px] md:max-w-[120px] 
-				       overflow-hidden text-ellipsis whitespace-nowrap
-				       flex items-center gap-1" 
+				class="font-mono text-xs 
+				       flex items-center gap-2 
+				       max-w-xs overflow-hidden text-ellipsis whitespace-nowrap" 
 				title={fileService.currentFile.path}
 			>
-				<Folder class="w-3 h-3 shrink-0" />
+				<Folder class="w-3.5 h-3.5 shrink-0 text-brand-muted" />
 				{getDisplayPath(fileService.currentFile.path)}
 			</span>
 		{:else}
-			<span class="italic text-text/60">No image loaded</span>
+			<span class="text-brand-muted/60">No image loaded</span>
 		{/if}
 	</div>
 
-	<div class="flex items-center justify-center flex-1 overflow-hidden max-sm:hidden">
+	<div class="flex items-center justify-center flex-1 overflow-hidden">
 		{#if fileService.currentFile}
 			<div 
-				class="flex items-center gap-1.5 md:gap-1 
+				class="flex items-center gap-3 
 				       whitespace-nowrap overflow-hidden text-ellipsis"
 			>
-				<span class="font-medium text-text flex items-center gap-1">
-					<Image class="w-3 h-3 shrink-0" />
+				<span class="font-medium text-brand-white flex items-center gap-1.5">
+					<Image class="w-3.5 h-3.5 shrink-0" />
 					{fileService.currentFile.name}
 				</span>
-				<span class="text-text/40 font-normal">•</span>
-				<span class="font-semibold text-text font-mono">
+				<span class="text-brand-muted/40">•</span>
+				<span class="font-semibold text-brand-primary font-mono text-xs">
 					{fileService.currentFile.extension.toUpperCase()}
 				</span>
-				<span class="text-text/40 font-normal">•</span>
-				<span class="text-text font-medium">
+				<span class="text-brand-muted/40">•</span>
+				<span class="text-brand-muted font-medium">
 					{fileService.currentFile.formattedSize}
 				</span>
 			</div>
 		{/if}
 	</div>
 
-	<div class="flex items-center gap-2 flex-none min-w-[150px] md:min-w-[100px] max-sm:flex-1">
-		<span class="font-medium flex items-center gap-1">
+	<div class="flex items-center gap-3 flex-none">
+		<span class="font-medium flex items-center gap-1.5">
 			{#if fileService.isLoading}
-				<Loader2 class="w-3 h-3 animate-spin" />
-				Loading...
+				<Loader2 class="w-3.5 h-3.5 animate-spin text-brand-primary" />
+				<span class="text-brand-primary">Loading...</span>
 			{:else if fileService.error}
-				<XCircle class="w-3 h-3 text-accent" />
-				Error
+				<XCircle class="w-3.5 h-3.5 text-brand-secondary" />
+				<span class="text-brand-secondary">Error</span>
 			{:else if fileService.currentFile}
-				<CheckCircle class="w-3 h-3 text-green-400" />
-				Ready
+				<CheckCircle class="w-3.5 h-3.5 text-brand-primary" />
+				<span class="text-brand-primary">Ready</span>
 			{:else}
-				<div class="w-3 h-3 bg-text/30 rounded-full"></div>
-				Idle
+				<div class="w-3.5 h-3.5 bg-brand-highlight rounded-full"></div>
+				<span class="text-brand-muted">Idle</span>
 			{/if}
 		</span>
-		<span class="text-text/40 font-normal">•</span>
-		<span class="font-mono text-xs text-text md:hidden">{getCurrentTime()}</span>
 	</div>
 </div>

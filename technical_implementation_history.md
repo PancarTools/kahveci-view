@@ -523,8 +523,237 @@ The initial emoji-based icons were functional but not professional-looking. Migr
 **Next Steps**:
 Ready for Phase 3 implementation with comprehensive icon set prepared for zoom, navigation, and advanced viewing features.
 
+### Phase 2.7: Sophisticated Design System Overhaul (Completed ✅)
+
+**Date**: November 29, 2025  
+**Context**: Major visual and UX improvement with modern color science
+
+**Design Philosophy Shift**:
+
+Moved from basic 4-color system to sophisticated, eye-pleasing design using OKLCH color space for better visual consistency and reduced eye strain.
+
+**OKLCH Color Science Implementation**:
+
+1. **Advanced Color Palette**:
+
+   ```css
+   --bg-dark: oklch(0.1 0.015 235); // Global background
+   --bg: oklch(0.15 0.015 235); // Component backgrounds
+   --bg-light: oklch(0.2 0.015 235); // Elevated surfaces
+   --text: oklch(0.96 0.03 235); // Primary text
+   --text-muted: oklch(0.76 0.03 235); // Secondary text
+   --highlight: oklch(0.5 0.03 235); // Subtle highlights
+   --border: oklch(0.4 0.03 235); // Borders
+   --border-muted: oklch(0.3 0.03 235); // Subtle borders
+   --primary: oklch(0.76 0.1 235); // Primary accent
+   --secondary: oklch(0.76 0.1 55); // Secondary accent
+   ```
+
+2. **Design System Benefits**:
+   - **Perceptual Uniformity**: OKLCH ensures consistent visual weight across colors
+   - **Better Accessibility**: Proper contrast ratios with scientific color relationships
+   - **Reduced Eye Strain**: Subtle separations instead of harsh contrasts
+   - **Professional Appearance**: Sophisticated color relationships
+
+**Visual Improvements**:
+
+1. **Subtle Component Separation**:
+
+   - Removed harsh white lines and high contrast borders
+   - Used gentle elevation with `border-border-muted` for separation
+   - Implemented layered background system (bg-dark → bg → bg-light)
+
+2. **Enhanced Typography Hierarchy**:
+
+   - `text` for primary content
+   - `text-muted` for secondary information
+   - `primary`/`secondary` for accent elements
+   - Better visual hierarchy with proper contrast ratios
+
+3. **Refined Spacing and Proportions**:
+
+   - Increased component padding for better breathing room
+   - Consistent spacing scale throughout application
+   - Improved icon sizes and alignment
+
+4. **Advanced Shadow System**:
+   ```css
+   'soft': '0 2px 8px oklch(0.05 0.015 235 / 0.1)',
+   'medium': '0 4px 16px oklch(0.05 0.015 235 / 0.15)',
+   'large': '0 8px 32px oklch(0.05 0.015 235 / 0.2)',
+   'glow': '0 0 20px oklch(0.76 0.1 235 / 0.1)',
+   ```
+
+**Component-Specific Improvements**:
+
+- **Global Layout**: `bg-dark` as global background with better body styling
+- **Toolbar**: Cleaner design with subtle borders, increased height (h-16), better button styling
+- **StatusBar**: Refined information hierarchy, better icon sizing, subtle separators
+- **DefaultState**: Enhanced welcome screen with layered background cards and subtle call-to-action
+- **ImageViewer**: Improved error states with better visual feedback
+- **FileExplorer**: Consistent styling with new color system
+
+**Technical Implementation**:
+
+- Updated `tailwind.config.js` with complete OKLCH color system
+- Modified `app.html` to include global background and typography
+- Refactored all components to use semantic color tokens
+- Improved hover and interaction states across components
+
+**UX/Accessibility Enhancements**:
+
+- Better focus states and interaction feedback
+- Consistent visual language throughout application
+- Improved readability with proper contrast ratios
+- Reduced cognitive load with subtle visual separations
+
+**Performance Optimizations**:
+
+- Eliminated complex CSS gradients and shadows
+- Streamlined color palette reduces CSS bundle size
+- Consistent color tokens improve maintainability
+
+**Files Modified**:
+
+- `tailwind.config.js`: Complete color system overhaul
+- `src/app.html`: Global styling improvements
+- `src/routes/+page.svelte`: Layout refinements
+- All 5 components updated with new design system
+
+**Visual Impact**:
+
+- Professional, sophisticated appearance
+- Significantly improved eye comfort for extended use
+- Modern design language competitive with premium applications
+- Better user experience with subtle, intentional design decisions
+
+**Next Steps**:
+Design system foundation now ready for Phase 3 advanced features with professional visual polish.
+
+### Phase 2.8: Tailwind v4 @theme Implementation & Background Fix (Completed ✅)
+
+**Date**: November 29, 2025  
+**Duration**: ~2 hours  
+**Context**: Resolving white background issues and implementing proper Tailwind v4 syntax
+
+**Problem Identified**: User reported white background issues despite the sophisticated color system implementation. Analysis revealed that while custom color variables were defined, they weren't being properly generated as Tailwind utilities due to improper Tailwind v4 implementation.
+
+**Root Cause Analysis**:
+
+1. **Color Definition Method**: Colors were defined in JavaScript config rather than CSS using @theme directive
+2. **Tailwind v4 Migration**: @theme directive is the proper way to define custom utilities in Tailwind v4
+3. **Background Inheritance**: Layout components weren't explicitly using dark background classes
+4. **HSL Format Issues**: Space-separated HSL values weren't being recognized correctly
+
+**Technical Solutions Implemented**:
+
+**1. @theme Directive Migration**
+
+- **Issue**: Color utilities weren't being generated from JavaScript config
+- **Solution**: Migrated all colors to CSS @theme directive in app.css
+- **Implementation**:
+  ```css
+  @theme {
+  	/* HSL-based color system with softer, more nuanced tones */
+  	--color-brand-dark: hsl(220 8% 8%);
+  	--color-brand-darker: hsl(220 8% 12%);
+  	// ... rest of color system
+  }
+  ```
+- **Benefit**: Proper Tailwind v4 syntax generating semantic class names like `bg-brand-dark`
+
+**2. HSL Format Correction**
+
+- **Issue**: Space-separated HSL values causing fallback to black/white
+- **Solution**: Used complete hsl() function format instead of space-separated values
+- **Before**: `--color-brand-dark: 220 8% 8%`
+- **After**: `--color-brand-dark: hsl(220 8% 8%)`
+
+**3. Background Inheritance Fix**
+
+- **Issue**: Layout components had implicit white backgrounds
+- **Solution**: Added explicit dark background classes throughout layout hierarchy
+- **Implementation**:
+
+  ```svelte
+  <!-- Layout wrapper -->
+  <div class="bg-brand-dark text-brand-white antialiased">
+
+  <!-- Main app container -->
+  <div class="flex flex-col h-screen w-screen bg-brand-dark text-brand-white">
+
+  <!-- Main content area -->
+  <main class="... bg-brand-dark">
+  ```
+
+**4. Global CSS Enhancements**
+
+- **Issue**: Root elements not properly inheriting dark theme
+- **Solution**: Enhanced global styles with comprehensive dark theme coverage
+- **Implementation**:
+
+  ```css
+  html,
+  body {
+  	background-color: hsl(var(--color-brand-dark));
+  	color: hsl(var(--color-brand-white));
+  	margin: 0;
+  	padding: 0;
+  	width: 100%;
+  	height: 100%;
+  	overflow: hidden;
+  }
+
+  #app,
+  #svelte {
+  	background-color: hsl(var(--color-brand-dark));
+  	width: 100%;
+  	height: 100%;
+  }
+  ```
+
+**Research Process**:
+
+- Consulted official Tailwind v4 documentation to understand @theme directive
+- Confirmed that Tailwind v4 requires CSS-based color definitions for utility generation
+- Verified proper HSL format requirements for color function generation
+
+**Files Modified**:
+
+- `src/app.css`: Added @theme directive, enhanced global styles, fixed HSL format
+- `src/routes/+layout.svelte`: Added dark theme wrapper
+- `src/routes/+page.svelte`: Added explicit background classes
+- `tailwind.config.js`: Removed duplicate color definitions (handled by @theme)
+
+**Validation Results**:
+
+- ✅ Clean semantic class names generated (e.g., `border-brand-subtle` instead of `border-[hsl(var(--color-brand-subtle))]`)
+- ✅ No more white background leakage
+- ✅ Consistent dark theme across all components
+- ✅ Proper Tailwind v4 implementation with @theme directive
+
+**User Experience Impact**:
+
+- **Before**: White backgrounds appearing sporadically, long unreadable arbitrary class names
+- **After**: Consistent dark theme, clean semantic class names, professional appearance
+- **Maintainability**: Much cleaner codebase with semantic utilities
+
+**Technical Debt Resolved**:
+
+- Proper Tailwind v4 migration with @theme directive
+- Eliminated arbitrary value class names for better readability
+- Consistent color system implementation
+- Comprehensive dark theme coverage
+
+**Design System Improvements**:
+
+- Semantic class naming (e.g., `bg-brand-light`, `text-brand-muted`)
+- Clean separation between CSS color definitions and JavaScript config
+- Better maintainability with centralized @theme block
+- Professional utility generation aligned with Tailwind v4 best practices
+
 ---
 
 _Last Updated: November 29, 2025_  
-_Current Phase: 2.6 - Icon System Migration (COMPLETED ✅)_  
+_Current Phase: 2.8 - Background Fix & @theme Implementation (COMPLETED ✅)_  
 _Next Milestone: Phase 3 - Advanced Viewing & Navigation_

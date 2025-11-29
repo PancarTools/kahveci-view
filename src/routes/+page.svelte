@@ -19,10 +19,10 @@
 	<meta name="description" content="A fast, modern image viewer built with Tauri and Svelte" />
 </svelte:head>
 
-<div class="flex flex-col h-screen w-screen bg-bg">
+<div class="flex flex-col h-screen w-screen bg-brand-dark text-brand-white">
 	<Toolbar />
 	
-	<main class="flex-1 flex items-center justify-center bg-bg p-5 overflow-hidden relative">
+	<main class="flex-1 flex items-center justify-center p-8 overflow-hidden relative bg-brand-dark">
 		{#if fileService.currentFile}
 			<ImageViewer />
 		{:else}

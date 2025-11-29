@@ -21,13 +21,13 @@
 		<button 
 			onclick={handleOpenFile} 
 			disabled={fileService.isLoading}
-			class="bg-surface text-text 
-			       border-none 
-			       px-4 py-2 rounded 
-			       cursor-pointer text-base 
-			       transition-colors duration-200 
-			       hover:bg-surface/80 
-			       disabled:bg-surface/30 disabled:cursor-not-allowed"
+			class="bg-bg-light text-text 
+			       border border-border-muted 
+			       px-4 py-2 rounded-lg 
+			       cursor-pointer text-sm font-medium 
+			       transition-all duration-200 ease-out 
+			       hover:bg-bg-light hover:border-border 
+			       disabled:bg-highlight disabled:cursor-not-allowed"
 		>
 			{fileService.isLoading ? 'Opening...' : 'Open Image'}
 		</button>
@@ -35,9 +35,9 @@
 
 	{#if fileService.error}
 		<div 
-			class="bg-accent/10 
-			       border-l-4 border-accent 
-			       text-accent 
+			class="bg-secondary/10 
+			       border-l-4 border-secondary 
+			       text-secondary 
 			       px-3 py-3 rounded 
 			       my-2 
 			       flex justify-between items-start 
@@ -48,7 +48,7 @@
 		>
 			<div class="flex items-start gap-2 flex-1">
 				<span class="leading-none">
-					<XCircle class="w-5 h-5 text-accent" />
+					<XCircle class="w-5 h-5 text-secondary" />
 				</span>
 				<span class="flex-1 leading-relaxed">{fileService.error}</span>
 			</div>
@@ -68,14 +68,14 @@
 
 	{#if fileService.currentFile}
 		<div 
-			class="bg-surface/50 
-			       p-4 rounded-lg 
+			class="bg-bg 
+			       p-4 rounded-xl 
 			       my-2 
-			       border border-surface/30 
-			       shadow-sm"
+			       border border-border-muted 
+			       shadow-soft"
 		>
-			<h3 class="m-0 mb-4 text-text text-lg flex items-center gap-2">
-				<Folder class="w-5 h-5" />
+			<h3 class="mb-4 text-text text-lg flex items-center gap-2">
+				<Folder class="w-5 h-5 text-primary" />
 				Current File
 			</h3>
 			<div 
@@ -84,14 +84,14 @@
 				       mb-4"
 			>
 				<div class="flex items-start gap-2">
-					<span class="min-w-20 font-medium text-text/70 text-sm flex items-center gap-1">
+					<span class="min-w-20 font-medium text-text-muted text-sm flex items-center gap-1">
 						<FileText class="w-3 h-3" />
 						Name:
 					</span>
 					<span class="flex-1 text-text text-sm wrap-break-word">{fileService.currentFile.name}</span>
 				</div>
 				<div class="flex items-start gap-2">
-					<span class="min-w-20 font-medium text-text/70 text-sm flex items-center gap-1">
+					<span class="min-w-20 font-medium text-text-muted text-sm flex items-center gap-1">
 						<Folder class="w-3 h-3" />
 						Path:
 					</span>

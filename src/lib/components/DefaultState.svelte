@@ -27,12 +27,12 @@
 
 <div 
 	class="flex items-center justify-center 
-	       p-6 md:p-5 m-auto 
-	       bg-surface border-2 border-dashed border-surface/50 rounded-xl 
-	       cursor-pointer transition-all duration-300 ease-in-out 
-	       relative overflow-hidden 
-	       hover:border-surface/70 hover:bg-surface/80 hover:-translate-y-0.5 hover:shadow-lg 
-	       active:translate-y-0 active:shadow-md"
+	       p-8 m-auto 
+	       bg-brand-gray border border-brand-subtle rounded-2xl 
+	       cursor-pointer transition-all duration-300 ease-out 
+	       relative overflow-hidden max-w-lg
+	       hover:border-brand-border hover:bg-brand-light hover:shadow-medium 
+	       active:scale-95"
 	ondragover={handleDragOver}
 	ondrop={handleDrop}
 	role="button"
@@ -41,44 +41,44 @@
 	onkeydown={(e) => e.key === 'Enter' && handleOpenImage()}
 >
 	<div class="text-center p-8 max-w-80 w-full">
-		<div class="mb-6">
-			<div class="mb-4">
-				<div class="text-6xl md:text-5xl inline-block m-0 drop-shadow-sm">
-					<Image class="w-16 h-16 md:w-14 md:h-14 text-text/80" />
+		<div class="mb-8">
+			<div class="mb-6">
+				<div class="inline-flex items-center justify-center w-20 h-20 mb-4 bg-brand-light rounded-2xl border border-brand-subtle">
+					<Image class="w-10 h-10 text-brand-primary" />
 				</div>
 			</div>
-			<div class="m-0">
-				<h2 class="m-0 mb-2 text-2xl md:text-xl font-bold text-text leading-tight">Welcome to Kahveci View</h2>
-				<p class="m-0 mb-6 text-sm text-text/70 leading-relaxed font-normal">Click here or drag & drop an image to get started</p>
+			<div>
+				<h2 class="mb-3 text-2xl font-bold text-brand-white leading-tight">Welcome to Kahveci View</h2>
+				<p class="mb-8 text-sm text-brand-muted leading-relaxed">Click here or drag & drop an image to get started</p>
 			</div>
 		</div>
 		
 		<button 
-			class="inline-flex items-center gap-2 
-			       px-5 py-3 
-			       bg-surface text-text border border-surface/50 rounded-lg 
+			class="inline-flex items-center gap-2.5 
+			       px-6 py-3 
+			       bg-brand-light text-brand-white border border-brand-subtle rounded-xl 
 			       text-sm font-semibold cursor-pointer 
-			       transition-all duration-200 ease-in-out mb-6 shadow-sm 
-			       hover:bg-surface/80 hover:border-surface/70 hover:-translate-y-0.5 hover:shadow-md 
-			       active:translate-y-0 active:shadow-sm" 
+			       transition-all duration-200 ease-out mb-8 shadow-soft 
+			       hover:bg-brand-lighter hover:border-brand-border hover:shadow-medium 
+			       active:scale-95" 
 			onclick={handleOpenImage}
 		>
 			<FolderOpen class="w-4 h-4" />
 			Open Image
 		</button>
 
-		<div class="mb-5 p-3 bg-bg border border-surface/30 rounded-md">
-			<p class="m-0 mb-1 text-xs font-semibold text-text">Supported formats:</p>
-			<p class="m-0 text-xs text-text/70 font-mono tracking-wide">JPG, PNG, GIF, WebP, BMP, TIFF, SVG</p>
+		<div class="mb-6 p-4 bg-brand-light border border-brand-subtle rounded-xl">
+			<p class="mb-1 text-xs font-semibold text-brand-white">Supported formats:</p>
+			<p class="text-xs text-brand-muted font-mono tracking-wide">JPG, PNG, GIF, WebP, BMP, TIFF, SVG</p>
 		</div>
 
-		<div class="flex flex-col gap-1.5 max-sm:hidden">
-			<div class="flex items-center gap-1.5 text-xs text-text/50 justify-center">
-				<Keyboard class="w-3 h-3 opacity-80" />
+		<div class="flex flex-col gap-2">
+			<div class="flex items-center gap-2 text-xs text-brand-muted justify-center">
+				<Keyboard class="w-3.5 h-3.5" />
 				<span class="font-medium">Press Ctrl+O to open</span>
 			</div>
-			<div class="flex items-center gap-1.5 text-xs text-text/50 justify-center">
-				<span class="text-sm opacity-80">🖱️</span>
+			<div class="flex items-center gap-2 text-xs text-brand-muted justify-center">
+				<div class="w-3.5 h-3.5 bg-brand-highlight rounded opacity-60"></div>
 				<span class="font-medium">Drag & drop supported</span>
 			</div>
 		</div>

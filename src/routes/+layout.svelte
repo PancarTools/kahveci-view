@@ -4,4 +4,6 @@
   let { children } = $props();
 </script>
 
-{@render children()}
+<div class="bg-brand-dark text-brand-white antialiased">
+  {@render children()}
+</div>

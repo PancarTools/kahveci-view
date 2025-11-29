@@ -142,14 +142,14 @@
 					class="flex-1 
 					       flex flex-col items-center justify-center 
 					       p-8 text-center 
-					       text-accent"
+					       text-secondary"
 				>
-					<div class="mb-2">
-						<XCircle class="w-8 h-8 text-accent mx-auto" />
+					<div class="mb-4">
+						<XCircle class="w-12 h-12 text-secondary mx-auto" />
 					</div>
-					<h3 class="m-0 mb-2 text-lg">Failed to Load Image</h3>
-					<p class="m-1 text-text">Could not display: {fileService.currentFile?.name || 'Unknown file'}</p>
-					<p class="m-1 text-sm opacity-80">The image file may be corrupted or in an unsupported format.</p>
+					<h3 class="mb-2 text-lg font-semibold text-text">Failed to Load Image</h3>
+					<p class="mb-1 text-text-muted">Could not display: {fileService.currentFile?.name || 'Unknown file'}</p>
+					<p class="text-sm text-text-muted/70">The image file may be corrupted or in an unsupported format.</p>
 				</div>
 			{:else}
 				<div 
