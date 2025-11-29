@@ -18,6 +18,17 @@
 	--color-brand-secondary: hsl(15 50% 65%); /* Warmer orange accent */
 	--color-brand-success: hsl(120 40% 55%); /* Muted success green */
 	--color-brand-error: hsl(0 50% 60%); /* Softer error red */
+
+	/* Traffic light colors for window controls */
+	--color-traffic-red: hsl(5 79% 65%); /* Close button */
+	--color-traffic-red-hover: hsl(5 79% 60%); /* Close button hover */
+	--color-traffic-red-text: hsl(5 79% 45%); /* Close button icon */
+	--color-traffic-yellow: hsl(41 88% 63%); /* Minimize button */
+	--color-traffic-yellow-hover: hsl(41 88% 58%); /* Minimize button hover */
+	--color-traffic-yellow-text: hsl(41 88% 43%); /* Minimize button icon */
+	--color-traffic-green: hsl(113 51% 56%); /* Maximize button */
+	--color-traffic-green-hover: hsl(113 51% 51%); /* Maximize button hover */
+	--color-traffic-green-text: hsl(113 51% 36%); /* Maximize button icon */
 }
 
 /* Global app styles with softer HSL color system */

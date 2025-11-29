@@ -6,6 +6,18 @@ export { FolderOpen } from "@lucide/svelte";
 export { Folder } from "@lucide/svelte";
 export { FileText } from "@lucide/svelte";
 export { Image } from "@lucide/svelte";
+export { Save } from "@lucide/svelte";
+export { Printer } from "@lucide/svelte";
+export { FolderTree } from "@lucide/svelte";
+
+// Edit Operations
+export { Undo } from "@lucide/svelte";
+export { Redo } from "@lucide/svelte";
+export { MousePointer } from "@lucide/svelte";
+export { Copy } from "@lucide/svelte";
+export { Clipboard } from "@lucide/svelte";
+export { Scissors } from "@lucide/svelte";
+export { Crop } from "@lucide/svelte";
 
 // Status & Feedback (Phase 1 & 2)
 export { CheckCircle } from "@lucide/svelte";
@@ -41,3 +53,8 @@ export { Info } from "@lucide/svelte";
 // Additional utility icons
 export { Keyboard } from "@lucide/svelte";
 export { Settings } from "@lucide/svelte";
+
+// Window Controls
+export { Minus } from "@lucide/svelte";
+export { Square as WindowSquare } from "@lucide/svelte";
+export { X } from "@lucide/svelte";

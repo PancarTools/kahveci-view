@@ -15,7 +15,7 @@
 </script>
 
 <svelte:head>
-	<title>Kahveci View - Modern Image Viewer</title>
+	<title>KahveciView - Modern Image Viewer</title>
 	<meta name="description" content="A fast, modern image viewer built with Tauri and Svelte" />
 </svelte:head>
 

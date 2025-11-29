@@ -1,6 +1,6 @@
 {
 	"$schema": "https://schema.tauri.app/config/2",
-	"productName": "kahveci-view",
+	"productName": "KahveciView",
 	"version": "0.1.0",
 	"identifier": "com.utkutekalmaz.kahveci-view",
 	"build": {
@@ -12,11 +12,13 @@
 	"app": {
 		"windows": [
 			{
-				"title": "kahveci-view",
+				"title": "KahveciView",
 				"width": 1200,
 				"height": 800,
 				"minWidth": 800,
-				"minHeight": 600
+				"minHeight": 600,
+				"decorations": false,
+				"titleBarStyle": "Overlay"
 			}
 		],
 		"security": {

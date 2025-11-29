@@ -752,8 +752,196 @@ Design system foundation now ready for Phase 3 advanced features with profession
 - Better maintainability with centralized @theme block
 - Professional utility generation aligned with Tailwind v4 best practices
 
+### Phase 2.9: Custom Window Management Implementation (Completed ✅)
+
+**Date**: November 29, 2025
+
+**Goal**: Implement native-feeling window management with custom titlebar
+
+**Architectural Decisions Made**:
+
+1. **Custom Titlebar System**: Disabled OS decorations for unified theme
+2. **Tauri Window API Integration**: Used native window controls for reliable behavior
+3. **Custom Drag Implementation**: Used Rust command instead of data-tauri-drag-region for better reliability
+
+**Technical Implementation**:
+
+**Frontend Changes**:
+
+- Updated `Toolbar.svelte` with window control buttons (minimize, maximize, close)
+- Added custom window drag handler using `invoke('start_drag')`
+- Implemented button event filtering to prevent accidental drags
+
+**Backend Changes**:
+
+- Added `start_drag` Rust command to `lib.rs` for reliable window dragging
+- Updated `invoke_handler` to register the new command
+- Used Tauri's native `window.start_dragging()` method
+
+**Configuration Updates**:
+
+- Modified `tauri.conf.json` to disable window decorations
+- Set overlay style for macOS integration
+- Added window control permissions to capabilities
+
+**Code Quality Improvements**:
+
+```rust
+// Clean Rust command implementation
+#[tauri::command]
+async fn start_drag(window: tauri::Window) -> Result<(), String> {
+    window.start_dragging().map_err(|e| e.to_string())
+}
+```
+
+```javascript
+// Reliable drag handler with button filtering
+async function handleDragStart(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    if (target.closest('button')) return; // Prevent drag on buttons
+
+    await invoke('start_drag');
+}
+```
+
+**User Experience Impact**:
+
+- **Before**: White OS titlebar conflicting with dark theme, non-draggable window
+- **After**: Unified dark theme titlebar, functional window controls, draggable interface
+- **Visual Consistency**: Complete theme integration with professional appearance
+- **Unique Design**: Hybrid approach combining macOS traffic light aesthetics with Windows-style right positioning
+
+**Creative Design Choice**:
+
+- **Layout**: Traffic light buttons positioned on the right side (Windows-style)
+- **Order**: Minimize, Maximize, Close - following Windows convention
+- **Aesthetic**: Beautiful macOS circular colored buttons (red, yellow, green)
+- **Result**: Unique fusion design that's both familiar and distinctive
+
+**Technical Benefits**:
+
+- Native window behavior maintained through Tauri API
+- Reliable drag functionality using Rust commands
+- Accessibility compliance with proper ARIA labels
+- Consistent hover states and visual feedback
+
+**Files Modified**:
+
+- `src/lib/components/Toolbar.svelte`: Window controls and drag implementation
+- `src-tauri/src/lib.rs`: Custom start_drag command
+- `src-tauri/tauri.conf.json`: Window decoration and overlay settings
+- `src-tauri/capabilities/default.json`: Window control permissions
+
+**Design System Integration**:
+
+- Window control buttons follow existing design patterns
+- Hover effects using established color system
+- Close button with distinct red hover state for user safety
+- Consistent 8px button sizing and spacing
+
+**macOS Traffic Light Enhancement**:
+
+- **Authentic Colors**: Red (#ef4444), Yellow (#eab308), Green (#22c55e) matching macOS system colors
+- **Perfect Sizing**: 14px circular buttons (w-3.5 h-3.5) with proportional 10px icons
+- **Professional Effects**: Subtle borders (opacity 30%), shadows, and smooth hover transitions
+- **Native Layout**: Traffic lights positioned on left side like real macOS applications
+- **Hover States**: Icons become visible on hover with darker background colors
+- **Active States**: Scale animation (scale-90) on click for tactile feedback
+
+**Code Quality**:
+
+```svelte
+// Clean separation of button styles by function
+const macOSCloseButtonClass = `w-3.5 h-3.5 bg-red-500 text-transparent hover:bg-red-600 hover:text-red-900 rounded-full`
+const macOSMinimizeButtonClass = `w-3.5 h-3.5 bg-yellow-500 text-transparent hover:bg-yellow-600 hover:text-yellow-900 rounded-full`
+const macOSMaximizeButtonClass = `w-3.5 h-3.5 bg-green-500 text-transparent hover:bg-green-600 hover:text-green-900 rounded-full`
+```
+
+**Accessibility Features**:
+
+- Proper ARIA labels for screen readers
+- Keyboard navigation support maintained
+- Visual feedback for all interactive elements
+- Clear button focus states with accessibility compliance
+
+### Phase 2.10: Semantic Traffic Light Color System (Completed ✅)
+
+**Date**: November 29, 2025
+
+**Goal**: Implement proper semantic color system for traffic light controls using Tailwind v4 best practices
+
+**Architectural Decisions Made**:
+
+1. **Semantic CSS Variables**: Moved from arbitrary color values to proper CSS custom properties
+2. **Tailwind v4 @theme Integration**: Added traffic light colors to the centralized theme system
+3. **Professional Color Palette**: Refined color choices for elegant, less saturated appearance
+
+**Technical Implementation**:
+
+**CSS Color System**:
+
+```css
+/* Traffic light colors in app.css @theme directive */
+--color-traffic-red: hsl(5 79% 65%); /* Close button - sophisticated coral */
+--color-traffic-yellow: hsl(41 88% 63%); /* Minimize button - elegant golden */
+--color-traffic-green: hsl(113 51% 56%); /* Maximize button - modern fresh green */
+
+/* Complete hover state system */
+--color-traffic-red-hover: hsl(5 79% 60%);
+--color-traffic-red-text: hsl(5 79% 45%);
+/* + yellow and green variants */
+```
+
+**Component Updates**:
+
+```svelte
+// Clean semantic class usage instead of arbitrary values
+const macOSCloseButtonClass = `bg-traffic-red hover:bg-traffic-red-hover hover:text-traffic-red-text`
+const macOSMinimizeButtonClass = `bg-traffic-yellow hover:bg-traffic-yellow-hover hover:text-traffic-yellow-text`
+const macOSMaximizeButtonClass = `bg-traffic-green hover:bg-traffic-green-hover hover:text-traffic-green-text`
+```
+
+**Code Quality Improvements**:
+
+- **Before**: Arbitrary values like `bg-[#EC6A5E]` scattered throughout components
+- **After**: Semantic classes like `bg-traffic-red` with centralized color management
+- **Maintainability**: All traffic light colors defined in one place with consistent naming
+- **Type Safety**: Tailwind auto-completion for custom semantic classes
+
+**Color Refinements**:
+
+- **Sophisticated Palette**: Moved from highly saturated defaults to refined, professional colors
+- **HSL Color Space**: Proper HSL format for better color manipulation and consistency
+- **Visual Harmony**: Colors designed to work elegantly with the existing dark theme
+- **Accessibility**: Sufficient contrast while maintaining visual appeal
+
+**User Experience Impact**:
+
+- **Visual Polish**: More refined, elegant appearance with professional color choices
+- **Brand Consistency**: Traffic light colors properly integrated into design system
+- **Maintainable Design**: Easy to adjust colors globally without touching component code
+
+**Hybrid Design Achievement**:
+
+- **Unique Identity**: macOS traffic light aesthetics with Windows-style right positioning
+- **Best of Both Worlds**: Beautiful circular colored buttons with familiar placement
+- **Creative Innovation**: Distinctive design that stands out while remaining intuitive
+
+**Files Modified**:
+
+- `src/app.css`: Added semantic traffic light color variables to @theme directive
+- `src/lib/components/Toolbar.svelte`: Updated to use semantic class names
+- Proper Tailwind v4 implementation following framework best practices
+
+**Technical Benefits**:
+
+- Centralized color management in CSS custom properties
+- Clean separation between design tokens and component implementation
+- Better developer experience with semantic class names
+- Future-proof architecture for easy color theme variations
+
 ---
 
 _Last Updated: November 29, 2025_  
-_Current Phase: 2.8 - Background Fix & @theme Implementation (COMPLETED ✅)_  
+_Current Phase: 2.10 - Semantic Traffic Light Colors (COMPLETED ✅)_  
 _Next Milestone: Phase 3 - Advanced Viewing & Navigation_

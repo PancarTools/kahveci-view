@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { getFileService } from '$lib/stores/fileService.svelte';
+	import { getMouseCoordinates } from '$lib/stores/mouseCoordinates.svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import { invoke } from '@tauri-apps/api/core';
 	import { XCircle } from '$lib/icons';
 
 	const fileService = getFileService();
+	const mouseCoords = getMouseCoordinates();
 
 	async function logTauri(message: string, level: "info" | "warn" | "error" | "debug" = "info") {
 		try {
@@ -16,10 +18,49 @@
 
 	// Reactive variables for image display
 	let imageElement: HTMLImageElement | null = $state(null);
+	let imageContainer: HTMLDivElement | null = $state(null);
 	let imageLoaded = $state(false);
 	let imageError = $state(false);
 	let imageNaturalWidth = $state(0);
 	let imageNaturalHeight = $state(0);
+
+	// Mouse tracking functions
+	function handleMouseMove(event: MouseEvent) {
+		if (!imageElement || !imageContainer || !imageLoaded) return;
+		
+		const rect = imageElement.getBoundingClientRect();
+		const containerRect = imageContainer.getBoundingClientRect();
+		
+		// Calculate relative position within the image bounds
+		const x = Math.round(event.clientX - rect.left);
+		const y = Math.round(event.clientY - rect.top);
+		
+		// Check if mouse is within image bounds
+		const isWithinImage = x >= 0 && x < rect.width && y >= 0 && y < rect.height;
+		
+		if (isWithinImage) {
+			// Scale coordinates to image natural size
+			const scaleX = imageNaturalWidth / rect.width;
+			const scaleY = imageNaturalHeight / rect.height;
+			
+			const imageX = Math.round(x * scaleX);
+			const imageY = Math.round(y * scaleY);
+			
+			mouseCoords.updatePosition(imageX, imageY);
+			mouseCoords.setOverImage(true);
+		} else {
+			mouseCoords.setOverImage(false);
+		}
+	}
+	
+	function handleMouseEnter() {
+		mouseCoords.setOverImage(true);
+	}
+	
+	function handleMouseLeave() {
+		mouseCoords.setOverImage(false);
+		mouseCoords.reset();
+	}
 
 	// Computed image source URL
 	let imageSrc = $derived(() => {
@@ -157,6 +198,12 @@
 					       flex items-center justify-center 
 					       p-5 
 					       relative w-full h-full"
+					bind:this={imageContainer}
+					onmousemove={handleMouseMove}
+					onmouseenter={handleMouseEnter}
+					onmouseleave={handleMouseLeave}
+					role="img"
+					aria-label="Image viewer area"
 				>
 					<img
 						bind:this={imageElement}
