@@ -108,13 +108,15 @@
 </script>
 
 <!-- Toolbar with custom drag handling -->
+<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
 <div 
 	class="flex items-center justify-between 
 	       h-16 
 	       bg-brand-darker border-b border-brand-subtle 
 	       px-6 relative z-10 cursor-move"
 	onmousedown={handleDragStart}
-	role="banner"
+	role="application"
+	tabindex="-1"
 	aria-label="Application toolbar - drag to move window"
 >
 	<!-- Left: App Title -->
@@ -123,7 +125,7 @@
 	</div>
 
 	<!-- Center: File Operations Group -->
-	<div class="flex items-center gap-1 flex-none">
+	<div class="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-1">
 		<button 
 			class={buttonClass}
 			onclick={handleOpenImage}

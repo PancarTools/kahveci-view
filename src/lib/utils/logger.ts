@@ -12,7 +12,7 @@ export function isDebugEnabled(): boolean {
 	}
 
 	// Check environment variable (for build-time control)
-	if (typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__) {
+	if (globalThis.window !== undefined && (globalThis.window as any).__TAURI_INTERNALS__) {
 		// In Tauri, we can check for debug mode
 		return true; // Enable debug logging in development by default
 	}
@@ -49,9 +49,18 @@ export async function logTauri(message: string, level: LogLevel = "info", contex
 
 	if (shouldLog) {
 		// Log to browser console with formatting
-		const consoleMethod = level === "error" ? "error" : level === "warn" ? "warn" : level === "debug" ? "debug" : "log";
+		const logMessage = `[${timestamp}] ${fullMessage}`;
+		const logData = data || "";
 
-		console[consoleMethod](`[${timestamp}] ${fullMessage}`, data ? data : "");
+		if (level === "error") {
+			console.error(logMessage, logData);
+		} else if (level === "warn") {
+			console.warn(logMessage, logData);
+		} else if (level === "debug") {
+			console.debug(logMessage, logData);
+		} else {
+			console.log(logMessage, logData);
+		}
 
 		// Also log to Tauri backend
 		try {
@@ -92,7 +101,7 @@ export const logger = {
 
 // Global error handler
 export function setupGlobalErrorHandling(): void {
-	window.addEventListener("error", (event) => {
+	globalThis.addEventListener("error", (event) => {
 		logger.error(`Global error: ${event.message}`, "GLOBAL", {
 			filename: event.filename,
 			lineno: event.lineno,
@@ -101,7 +110,7 @@ export function setupGlobalErrorHandling(): void {
 		});
 	});
 
-	window.addEventListener("unhandledrejection", (event) => {
+	globalThis.addEventListener("unhandledrejection", (event) => {
 		logger.error(`Unhandled promise rejection: ${event.reason}`, "GLOBAL", { reason: event.reason });
 	});
 }
@@ -120,7 +129,8 @@ export const debugUtils = {
 
 	// Log user interactions
 	userAction: (action: string, target?: string, details?: any) => {
-		logger.debug(`User action: ${action}${target ? ` on ${target}` : ""}`, "USER", details);
+		const targetSuffix = target ? ` on ${target}` : "";
+		logger.debug(`User action: ${action}${targetSuffix}`, "USER", details);
 	},
 
 	// Log file operations

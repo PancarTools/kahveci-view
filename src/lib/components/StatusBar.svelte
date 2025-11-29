@@ -64,7 +64,7 @@
 	</div>
 
 	<!-- Center: Status -->
-	<div class="flex items-center justify-center flex-1 overflow-hidden">
+	<div class="absolute left-1/2 transform -translate-x-1/2 flex items-center justify-center overflow-hidden">
 		<span class="flex items-center gap-1">
 			{#if fileService.isLoading}
 				<Loader2 class="w-3 h-3 animate-spin text-brand-primary" />
