@@ -39,14 +39,8 @@
 		const isWithinImage = x >= 0 && x < rect.width && y >= 0 && y < rect.height;
 		
 		if (isWithinImage) {
-			// Scale coordinates to image natural size
-			const scaleX = imageNaturalWidth / rect.width;
-			const scaleY = imageNaturalHeight / rect.height;
-			
-			const imageX = Math.round(x * scaleX);
-			const imageY = Math.round(y * scaleY);
-			
-			mouseCoords.updatePosition(imageX, imageY);
+			// Use actual display coordinates (not scaled to natural image size)
+			mouseCoords.updatePosition(x, y);
 			mouseCoords.setOverImage(true);
 		} else {
 			mouseCoords.setOverImage(false);

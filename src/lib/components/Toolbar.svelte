@@ -125,12 +125,12 @@
 	aria-label="Application toolbar - drag to move window"
 >
 	<!-- Left: App Title -->
-	<div class="flex items-center gap-1 flex-none">
-        <h1 class="text-sm font-medium text-brand-muted select-none">KahveciView</h1>
+	<div class="flex items-center gap-1 flex-none" role="presentation">
+		<h1 class="text-sm font-medium text-brand-muted select-none">KahveciView</h1>
 	</div>
 
 	<!-- Center: File Operations Group -->
-	<div class="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-1">
+	<div class="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-1 cursor-pointer" onmousedown={(e) => e.stopPropagation()} role="toolbar" aria-label="File and edit operations" tabindex="0">
 		<button 
 			class={buttonClass}
 			onclick={handleOpenImage}
@@ -252,7 +252,7 @@
 	</div>
 
 	<!-- Right: macOS-style Traffic Light Controls (Windows positioning twist!) -->
-	<div class="flex items-center gap-2 flex-none">
+	<div class="flex items-center gap-2 flex-none" onmousedown={(e) => e.stopPropagation()} role="presentation">
 		<button 
 			class={macOSMinimizeButtonClass}
 			onclick={handleMinimize}
