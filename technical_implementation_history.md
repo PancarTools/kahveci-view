@@ -940,8 +940,117 @@ const macOSMaximizeButtonClass = `bg-traffic-green hover:bg-traffic-green-hover 
 - Better developer experience with semantic class names
 - Future-proof architecture for easy color theme variations
 
+### Phase 2.11: Advanced Image Coordinate System & Status Bar Integration (Completed ✅)
+
+**Date**: November 30, 2025
+
+**Goal**: Implement accurate coordinate tracking and real-time image metadata display
+
+**Architectural Decisions Made**:
+
+1. **Coordinate System Choice**: Implemented original image pixel coordinate tracking instead of display coordinates
+
+   - **Decision**: Scale display coordinates to original image dimensions using natural width/height
+   - **Rationale**: Professional image viewers display actual pixel coordinates for precise work
+   - **Implementation**: `scaleX/Y = naturalDimensions / displayDimensions` with rounded coordinate conversion
+
+2. **Shared Image Metadata Store**: Created centralized image metadata management
+
+   - **Architecture**: New `imageMetadata.svelte.ts` store using Svelte 5 runes
+   - **Purpose**: Share real-time image dimensions between ImageViewer and StatusBar components
+   - **Benefits**: Eliminated hardcoded mock data, automatic aspect ratio and megapixel calculation
+
+3. **Window Drag Interaction Refinement**: Enhanced toolbar drag behavior
+   - **Issue**: File operation buttons and UI elements triggering unwanted window drags
+   - **Solution**: Added `onmousedown={(e) => e.stopPropagation()}` to prevent drag propagation
+   - **Result**: Clean drag behavior only from empty toolbar space
+
+**Technical Implementation**:
+
+**New Store Architecture**:
+
+```typescript
+// imageMetadata.svelte.ts - Centralized image metadata management
+class ImageMetadata {
+	naturalWidth = $state(0);
+	naturalHeight = $state(0);
+	isLoaded = $state(false);
+
+	get resolution(): string {
+		return `${width}x${height}`;
+	}
+	get ratio(): string {
+		/* GCD calculation for simplified ratios */
+	}
+	get megapixels(): string {
+		/* Automatic MP calculation */
+	}
+}
+```
+
+**Coordinate System Enhancement**:
+
+```typescript
+// Original image pixel coordinates (professional standard)
+const scaleX = imageNaturalWidth / rect.width;
+const scaleY = imageNaturalHeight / rect.height;
+const originalX = Math.round(x * scaleX);
+const originalY = Math.round(y * scaleY);
+```
+
+**Component Integration**:
+
+- **ImageViewer**: Updates shared store when image loads, provides accurate coordinate scaling
+- **StatusBar**: Displays real image dimensions, calculated ratios, and precise megapixel counts
+- **Toolbar**: Refined drag behavior preventing UI element interference
+
+**User Experience Impact**:
+
+- **Before**: Mock hardcoded data (4032x3024, 12.2MP), display-only coordinates
+- **After**: Real image data (e.g., 3629x2433, 8.8MP), professional pixel coordinates
+- **Professional Workflow**: Coordinates match industry standards for precise image work
+- **Visual Polish**: Authentic metadata display with calculated aspect ratios
+
+**Files Created/Modified**:
+
+- `src/lib/stores/imageMetadata.svelte.ts` (NEW): Centralized image metadata management
+- `src/lib/components/ImageViewer.svelte`: Coordinate scaling, metadata store integration
+- `src/lib/components/StatusBar.svelte`: Real metadata display instead of mock data
+- `src/lib/components/Toolbar.svelte`: Drag behavior refinement with event propagation control
+
+**Technical Benefits**:
+
+- **Accuracy**: Real-time image dimensions and calculated metadata
+- **Performance**: Reactive updates with Svelte 5 runes efficiency
+- **Maintainability**: Centralized metadata management eliminates duplication
+- **Professional Standards**: Coordinate system matches industry image viewers
+
+**Design System Integration**:
+
+- Maintained existing professional dark theme and typography
+- Preserved traffic light window controls and semantic color system
+- Enhanced status bar information hierarchy with real data
+- Consistent interaction patterns with refined drag behavior
+
+**Validation Results**:
+
+- ✅ Accurate coordinate display (original image pixel coordinates)
+- ✅ Real image dimensions in status bar (resolution, ratio, megapixels)
+- ✅ Clean window drag behavior (no interference from UI elements)
+- ✅ Reactive metadata updates when switching images
+- ✅ Professional metadata calculations (GCD ratios, precise megapixels)
+
+**Key Learnings**:
+
+- Professional image viewers require original pixel coordinates, not display coordinates
+- Shared stores with Svelte 5 runes provide excellent cross-component data synchronization
+- Event propagation control is crucial for clean desktop app interactions
+- Real-time calculated metadata provides much better user experience than mock data
+
+**Deliverable**: ✅ Professional coordinate tracking system with accurate real-time metadata display and refined window interaction behavior
+
 ---
 
-_Last Updated: November 29, 2025_  
-_Current Phase: 2.10 - Semantic Traffic Light Colors (COMPLETED ✅)_  
+_Last Updated: November 30, 2025_  
+_Current Phase: 2.11 - Advanced Image Coordinate System & Status Bar Integration (COMPLETED ✅)_  
 _Next Milestone: Phase 3 - Advanced Viewing & Navigation_

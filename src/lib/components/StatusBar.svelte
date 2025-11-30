@@ -1,32 +1,12 @@
 <script lang="ts">
 	import { getFileService } from '$lib/stores/fileService.svelte';
 	import { getMouseCoordinates } from '$lib/stores/mouseCoordinates.svelte';
+	import { getImageMetadata } from '$lib/stores/imageMetadata.svelte';
 	import { CheckCircle, XCircle, Loader2 } from '$lib/icons';
 
 	const fileService = getFileService();
 	const mouseCoords = getMouseCoordinates();
-
-	// Mock image data for demonstration
-	interface ImageMetadata {
-		resolution: string;
-		ratio: string;
-		megapixels: string;
-		date: string;
-		device: string;
-	}
-
-	function getImageMetadata(): ImageMetadata | null {
-		if (!fileService.currentFile) return null;
-		
-		// Mock data - in reality this would come from EXIF/image processing
-		return {
-			resolution: "4032x3024",
-			ratio: "4:3",
-			megapixels: "12.2MP",
-			date: "2025-11-29 14:32:15",
-			device: "Fujifilm X100VI"
-		};
-	}
+	const imageMetadata = getImageMetadata();
 
 	function formatCoordinates(): string {
 		if (!mouseCoords.isOverImage) return "—";
@@ -43,21 +23,18 @@
 >
 	<!-- Left: Image Information -->
 	<div class="flex items-center gap-2 flex-none">
-		{#if fileService.currentFile}
-			{@const metadata = getImageMetadata()}
-			{#if metadata}
-				<span class="font-mono text-brand-white text-xs">{metadata.resolution}</span>
-				<span class="text-brand-muted/40">•</span>
-				<span class="text-brand-muted text-xs">{metadata.ratio}</span>
-				<span class="text-brand-muted/40">•</span>
-				<span class="text-brand-muted text-xs">{fileService.currentFile.formattedSize}</span>
-				<span class="text-brand-muted/40">•</span>
-				<span class="text-brand-primary text-xs font-medium">{metadata.megapixels}</span>
-				<span class="text-brand-muted/40">•</span>
-				<span class="text-brand-muted/80 text-xs">{metadata.device}</span>
-			{:else}
-				<span class="text-brand-muted/60 text-xs">No metadata</span>
-			{/if}
+		{#if fileService.currentFile && imageMetadata.isLoaded}
+			<span class="font-mono text-brand-white text-xs">{imageMetadata.resolution}</span>
+			<span class="text-brand-muted/40">•</span>
+			<span class="text-brand-muted text-xs">{imageMetadata.ratio}</span>
+			<span class="text-brand-muted/40">•</span>
+			<span class="text-brand-muted text-xs">{fileService.currentFile.formattedSize}</span>
+			<span class="text-brand-muted/40">•</span>
+			<span class="text-brand-primary text-xs font-medium">{imageMetadata.megapixels}</span>
+			<span class="text-brand-muted/40">•</span>
+			<span class="text-brand-muted/80 text-xs">Fujifilm X100VI</span>
+		{:else if fileService.currentFile}
+			<span class="text-brand-muted/60 text-xs">Loading...</span>
 		{:else}
 			<span class="text-brand-muted/60 text-xs">No image</span>
 		{/if}

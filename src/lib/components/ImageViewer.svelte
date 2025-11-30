@@ -1,12 +1,14 @@
 <script lang="ts">
 	import { getFileService } from '$lib/stores/fileService.svelte';
 	import { getMouseCoordinates } from '$lib/stores/mouseCoordinates.svelte';
+	import { getImageMetadata } from '$lib/stores/imageMetadata.svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import { invoke } from '@tauri-apps/api/core';
 	import { XCircle } from '$lib/icons';
 
 	const fileService = getFileService();
 	const mouseCoords = getMouseCoordinates();
+	const imageMetadata = getImageMetadata();
 
 	async function logTauri(message: string, level: "info" | "warn" | "error" | "debug" = "info") {
 		try {
@@ -39,8 +41,14 @@
 		const isWithinImage = x >= 0 && x < rect.width && y >= 0 && y < rect.height;
 		
 		if (isWithinImage) {
-			// Use actual display coordinates (not scaled to natural image size)
-			mouseCoords.updatePosition(x, y);
+			// Scale coordinates to original image dimensions
+			const scaleX = imageNaturalWidth / rect.width;
+			const scaleY = imageNaturalHeight / rect.height;
+			
+			const originalX = Math.round(x * scaleX);
+			const originalY = Math.round(y * scaleY);
+			
+			mouseCoords.updatePosition(originalX, originalY);
 			mouseCoords.setOverImage(true);
 		} else {
 			mouseCoords.setOverImage(false);
@@ -83,6 +91,10 @@
 		imageError = false;
 		imageNaturalWidth = target.naturalWidth;
 		imageNaturalHeight = target.naturalHeight;
+		
+		// Update shared image metadata store
+		imageMetadata.setDimensions(target.naturalWidth, target.naturalHeight);
+		
 		console.log(`[ImageViewer] Image loaded successfully: ${imageNaturalWidth}x${imageNaturalHeight}`);
 		console.log(`[ImageViewer] Image src: ${target.src}`);
 		logTauri(`[ImageViewer] Image loaded: ${imageNaturalWidth}x${imageNaturalHeight} from ${target.src}`, "info");
@@ -123,9 +135,15 @@
 			imageError = false;
 			imageNaturalWidth = 0;
 			imageNaturalHeight = 0;
+			
+			// Reset shared image metadata
+			imageMetadata.reset();
 		} else {
 			console.log('[ImageViewer] File cleared');
 			logTauri("[ImageViewer] Current file cleared", "info");
+			
+			// Reset shared image metadata
+			imageMetadata.reset();
 		}
 	});
 
