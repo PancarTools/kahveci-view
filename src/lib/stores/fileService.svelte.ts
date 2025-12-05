@@ -244,10 +244,63 @@ class FileService {
 		return null; // Valid path
 	}
 
+	isValidPath(filePath: string): boolean {
+		return this.validateFilePath(filePath) === null;
+	}
+
 	validateImageFormat(extension: string): boolean {
 		const isValid = SUPPORTED_FORMATS.includes(extension.toLowerCase());
 		console.log(`[FileService] Format validation for .${extension}:`, isValid);
 		return isValid;
+	}
+
+	isValidImageFile(fileInfo: FileInfo): boolean {
+		return this.validateImageFormat(fileInfo.extension);
+	}
+
+	async openFileByPath(filePath: string): Promise<FileInfo | null> {
+		try {
+			this.isLoading = true;
+			this.error = null;
+
+			await logTauri(`[FileService] Loading file by path: ${filePath}`, "info");
+			console.log("[FileService] Loading file by path:", filePath);
+
+			// Validate and extract file info
+			if (!this.isValidPath(filePath)) {
+				throw new Error("Invalid file path");
+			}
+
+			const fileInfo = await this.extractFileInfo(filePath);
+			if (!fileInfo) {
+				throw new Error("Failed to extract file information");
+			}
+
+			// Validate file type
+			if (!this.isValidImageFile(fileInfo)) {
+				throw new Error(`Unsupported file type: .${fileInfo.extension}`);
+			}
+
+			this.currentFile = fileInfo;
+
+			await logTauri(
+				`[FileService] Successfully opened file: ${fileInfo.name} (${fileInfo.extension.toUpperCase()}, ${
+					fileInfo.formattedSize
+				})`,
+				"info"
+			);
+
+			console.log("[FileService] File successfully loaded:", fileInfo);
+			return fileInfo;
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+			console.error("[FileService] Error loading file by path:", error);
+			await logTauri(`[FileService] Error loading file by path: ${errorMessage}`, "error");
+			this.error = errorMessage;
+			return null;
+		} finally {
+			this.isLoading = false;
+		}
 	}
 
 	clearError() {

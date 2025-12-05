@@ -11,6 +11,12 @@
 
 	onMount(() => {
 		setupGlobalErrorHandling();
+		
+		// Auto-load test image after 2 seconds
+		setTimeout(async () => {
+			const testImagePath = "/Users/utkutekalmaz/Downloads/0968goz_001115/Export JPG 16Base/aaa.JPG";
+			await fileService.openFileByPath(testImagePath);
+		}, 500);
 	});
 </script>
 
