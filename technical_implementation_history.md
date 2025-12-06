@@ -1179,6 +1179,280 @@ ctx.scale(devicePixelRatio, devicePixelRatio);
 
 ---
 
+### Phase 3.1: Apple Preview-Style Zoom System (Completed ✅)
+
+**Date**: December 5, 2025
+
+**Objective**: Implement zoom and pan functionality matching Apple Preview's behavior
+
+**Research & Design Decisions**:
+
+1. **Zoom-to-Cursor Behavior**: After researching Apple Preview's actual behavior (via user testing), confirmed that Preview zooms to the cursor position when using pinch/wheel gestures, not to the image center as some documentation suggested.
+
+2. **Zoom Architecture**: Created dedicated `zoomStore.svelte.ts` following the project's Svelte 5 runes pattern for centralized zoom state management.
+
+3. **Boundary Clamping**: Implemented edge-to-edge boundary clamping - image edges cannot be dragged past viewport edges, matching professional image viewer behavior.
+
+**Technical Implementation**:
+
+**New Store: `zoomStore.svelte.ts`**
+
+```typescript
+class ZoomState {
+	scale = $state(1); // Current zoom level (1 = 100%)
+	offsetX = $state(0); // Pan offset X
+	offsetY = $state(0); // Pan offset Y
+	mode = $state<"fit" | "actual" | "free">("fit");
+
+	// Key methods
+	zoomToPoint(zoomIn: boolean, cursorX: number, cursorY: number);
+	setFitToWindow();
+	setActualSize();
+	pan(deltaX: number, deltaY: number);
+	clampOffset();
+}
+```
+
+**Zoom-to-Cursor Mathematics**:
+
+```typescript
+// When zooming, keep the point under cursor fixed
+const scaleRatio = newScale / oldScale;
+const newOffsetX = cursorX - (cursorX - oldOffsetX) * scaleRatio;
+const newOffsetY = cursorY - (cursorY - oldOffsetY) * scaleRatio;
+```
+
+**Boundary Clamping Logic**:
+
+```typescript
+// Image smaller than container: center it
+// Image larger than container: clamp to edges
+if (scaledWidth <= containerWidth) {
+	offsetX = (containerWidth - scaledWidth) / 2;
+} else {
+	offsetX = Math.max(containerWidth - scaledWidth, Math.min(0, offsetX));
+}
+```
+
+**Component Updates**:
+
+1. **ImageViewer.svelte**:
+
+   - Integrated zoom store for scale/offset transforms
+   - Added wheel event handler for zoom-to-cursor
+   - Added mouse drag handlers for panning
+   - Updated `renderImageToCanvas()` to apply zoom transforms
+   - Updated coordinate tracking to account for zoom/pan
+   - Dynamic cursor feedback (grab/grabbing/crosshair)
+
+2. **Toolbar.svelte**:
+
+   - Added zoom control buttons (Zoom In, Zoom Out, Fit, 100%)
+   - Integrated zoom store for button state (disabled when at limits)
+   - Added Lucide icons (ZoomIn, ZoomOut, Maximize, Square)
+
+3. **StatusBar.svelte**:
+   - Added zoom percentage display
+   - Real-time updates as user zooms
+
+**Zoom Specifications**:
+
+- **Zoom Range**: 10% to 1000% (0.1x to 10x)
+- **Zoom Step**: 1.15x per wheel tick (multiplicative, smooth feel)
+- **Zoom Modes**: Fit-to-window, Actual size (100%), Free zoom
+- **Pan Behavior**: Only when image > viewport, with boundary clamping
+
+**Files Created/Modified**:
+
+- `src/lib/stores/zoomStore.svelte.ts` (NEW): Centralized zoom state management
+- `src/lib/components/ImageViewer.svelte`: Zoom/pan rendering, wheel handler, drag handlers
+- `src/lib/components/Toolbar.svelte`: Zoom control buttons
+- `src/lib/components/StatusBar.svelte`: Zoom percentage display
+- `src/lib/icons/index.ts`: Added ZoomIn, ZoomOut, Maximize, Square exports
+
+**User Experience**:
+
+- **Zoom**: Pinch gesture or Cmd+scroll zooms centered on cursor position (Apple Preview style)
+- **Scroll**: Trackpad scroll (vertical/horizontal) pans the image
+- **Pan**: Click and drag when zoomed in (cursor shows grab/grabbing)
+- **Fit**: Click toolbar button to fit image to window
+- **100%**: Click toolbar button to show actual pixel size
+- **Feedback**: Zoom percentage shown in status bar, cursor changes based on state
+
+**Validation Results**:
+
+- ✅ Zoom-to-cursor working correctly
+- ✅ Pan/drag with boundary clamping
+- ✅ Fit-to-window and actual size modes
+- ✅ Zoom percentage display in status bar
+- ✅ Coordinate tracking accurate with zoom/pan transforms
+- ✅ Toolbar buttons with proper disabled states
+- ✅ Cursor feedback (grab/grabbing/crosshair)
+
+**Key Learnings**:
+
+- Apple Preview actually zooms to cursor position, not center (verified by testing)
+- Multiplicative zoom steps (1.15x) feel more natural than additive
+- Boundary clamping requires different logic for "image smaller than container" vs "larger"
+- Zoom state should be in a dedicated store for cross-component access
+- Canvas transforms (scale + translate) are simpler than recalculating draw coordinates
+
+**Deliverable**: ✅ Professional Apple Preview-style zoom system with zoom-to-cursor, pan/drag, boundary clamping, and toolbar controls
+
+---
+
+### Phase 3.1.1: Smooth Animated Transitions (Completed ✅)
+
+**Date**: December 5, 2025
+
+**Objective**: Add smooth animated transitions for toolbar zoom controls (Fit, 100%, Zoom In/Out)
+
+**Problem Identified**: Initial implementation had instant zoom changes for toolbar buttons, while pinch/scroll felt smooth. User requested Apple Preview-like smooth transitions.
+
+**Technical Implementation**:
+
+**1. Animation System in ImageViewer**:
+
+```typescript
+// Animation state
+let animationFrameId: number | null = null;
+let isAnimating = $state(false);
+const ANIMATION_DURATION = 250; // ms
+
+// Easing function (ease-out cubic for smooth deceleration)
+function easeOutCubic(t: number): number {
+	return 1 - Math.pow(1 - t, 3);
+}
+
+// Animate zoom transition
+function animateZoomTo(targetScale, targetOffsetX, targetOffsetY) {
+	isAnimating = true;
+	const startTime = performance.now();
+
+	function animate(currentTime) {
+		const progress = Math.min((currentTime - startTime) / ANIMATION_DURATION, 1);
+		const easedProgress = easeOutCubic(progress);
+
+		// Interpolate values
+		zoomState.scale = lerp(startScale, targetScale, easedProgress);
+		zoomState.offsetX = lerp(startOffsetX, targetOffsetX, easedProgress);
+		zoomState.offsetY = lerp(startOffsetY, targetOffsetY, easedProgress);
+
+		renderImageToCanvas(currentImage);
+
+		if (progress < 1) {
+			requestAnimationFrame(animate);
+		} else {
+			isAnimating = false;
+		}
+	}
+	requestAnimationFrame(animate);
+}
+```
+
+**2. Command-Based Toolbar Communication**:
+
+Added command queue system to zoomStore for toolbar-to-ImageViewer communication:
+
+```typescript
+// In zoomStore.svelte.ts
+type ZoomCommand = "zoomIn" | "zoomOut" | "fitToWindow" | "actualSize" | null;
+pendingCommand = $state<ZoomCommand>(null);
+
+requestZoomIn() { this.pendingCommand = "zoomIn"; }
+requestZoomOut() { this.pendingCommand = "zoomOut"; }
+requestFitToWindow() { this.pendingCommand = "fitToWindow"; }
+requestActualSize() { this.pendingCommand = "actualSize"; }
+```
+
+ImageViewer listens for commands and executes with animation:
+
+```typescript
+$effect(() => {
+	const command = zoomState.pendingCommand;
+	if (!command || !imageLoaded) return;
+	zoomState.clearCommand();
+
+	switch (command) {
+		case "zoomIn":
+			zoomIn();
+			break;
+		case "zoomOut":
+			zoomOut();
+			break;
+		case "fitToWindow":
+			fitToWindow();
+			break;
+		case "actualSize":
+			actualSize();
+			break;
+	}
+});
+```
+
+**3. Scroll Behavior Refinement**:
+
+Changed input behavior to match Apple Preview:
+
+- **Trackpad scroll** (deltaX/deltaY) → Pan the image
+- **Pinch gesture** (ctrlKey + wheel) → Zoom to cursor
+- **Cmd + scroll** (metaKey + wheel) → Zoom to cursor
+
+```typescript
+function handleWheel(event: WheelEvent) {
+	const isZoomGesture = event.ctrlKey || event.metaKey;
+
+	if (isZoomGesture) {
+		// Zoom to cursor
+		zoomState.zoomToPoint(event.deltaY < 0, cursorX, cursorY);
+	} else {
+		// Pan with natural scrolling
+		zoomState.pan(-event.deltaX, -event.deltaY);
+	}
+}
+```
+
+**4. Zoom Speed Tuning**:
+
+Refined zoom steps for better control:
+
+- **Pinch/scroll**: 1.025x (2.5% per tick) - smooth, precise control
+- **Toolbar buttons**: 1.25x (25% per click) - noticeable change per click
+
+**Key Challenges Solved**:
+
+1. **Animation/Effect Conflict**: Re-render effect was interfering with animation by also calling render. Fixed by adding `isAnimating` flag and skipping effect during animation.
+
+2. **Fit Mode Instant Reset**: `resizeCanvas()` was calling `setFitToWindow()` instantly when mode was 'fit'. Fixed by checking `!isAnimating` before instant updates.
+
+3. **Mode Setting Order**: Setting `zoomState.mode` before animation could trigger unwanted effects. Fixed by setting mode after starting animation.
+
+**Files Modified**:
+
+- `src/lib/stores/zoomStore.svelte.ts`: Added command queue system, ZoomCommand type
+- `src/lib/components/ImageViewer.svelte`: Animation system, command listener, scroll behavior
+- `src/lib/components/Toolbar.svelte`: Use request methods instead of direct calls
+
+**Validation Results**:
+
+- ✅ Fit to Window - smooth 250ms eased animation
+- ✅ Actual Size (100%) - smooth 250ms eased animation
+- ✅ Zoom In button - smooth 250ms eased animation
+- ✅ Zoom Out button - smooth 250ms eased animation
+- ✅ Pinch/Cmd+scroll - instant responsive zoom (no animation needed)
+- ✅ Trackpad scroll - smooth panning
+- ✅ No animation conflicts or visual glitches
+
+**User Experience Impact**:
+
+- **Before**: Toolbar buttons caused jarring instant jumps
+- **After**: Smooth, professional transitions matching Apple Preview quality
+- **Scroll behavior**: Natural - scroll pans, pinch zooms (matches user expectation)
+
+**Deliverable**: ✅ Polished zoom system with smooth animated transitions for all toolbar controls
+
+---
+
 _Last Updated: December 5, 2025_  
-_Current Phase: 2.12 - Canvas-Based Rendering System (COMPLETED ✅)_  
-_Next Milestone: Phase 3 - Advanced Viewing & Navigation (Zoom, Pan, Keyboard shortcuts)_
+_Current Phase: 3.1 - Zoom & Pan System (COMPLETED ✅)_  
+_Next Milestone: Phase 3.2 - Image Navigation_

@@ -1,8 +1,8 @@
-
 <script lang="ts">
 	import { getFileService } from '$lib/stores/fileService.svelte';
 	import { getMouseCoordinates } from '$lib/stores/mouseCoordinates.svelte';
 	import { getImageMetadata } from '$lib/stores/imageMetadata.svelte';
+	import { getZoomState } from '$lib/stores/zoomStore.svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import { invoke } from '@tauri-apps/api/core';
 	import { XCircle } from '$lib/icons';
@@ -10,6 +10,7 @@
 	const fileService = getFileService();
 	const mouseCoords = getMouseCoordinates();
 	const imageMetadata = getImageMetadata();
+	const zoomState = getZoomState();
 
 	async function logTauri(message: string, level: "info" | "warn" | "error" | "debug" = "info") {
 		try {
@@ -33,48 +34,207 @@
 	let canvasWidth = $state(0);
 	let canvasHeight = $state(0);
 
-	// Mouse tracking functions
+	// Pan/drag state
+	let isPanning = $state(false);
+	let lastPanX = 0;
+	let lastPanY = 0;
+
+	// Animation state
+	let animationFrameId: number | null = null;
+	let isAnimating = $state(false);
+	const ANIMATION_DURATION = 250; // ms
+
+	// Easing function (ease-out cubic for smooth deceleration)
+	function easeOutCubic(t: number): number {
+		return 1 - Math.pow(1 - t, 3);
+	}
+
+	// Animate zoom transition
+	function animateZoomTo(targetScale: number, targetOffsetX: number, targetOffsetY: number) {
+		// Cancel any ongoing animation
+		if (animationFrameId !== null) {
+			cancelAnimationFrame(animationFrameId);
+			animationFrameId = null;
+		}
+
+		const startScale = zoomState.scale;
+		const startOffsetX = zoomState.offsetX;
+		const startOffsetY = zoomState.offsetY;
+		const startTime = performance.now();
+
+		isAnimating = true;
+		console.log(`[Animate] Starting: scale ${startScale.toFixed(3)} -> ${targetScale.toFixed(3)}`);
+
+		function animate(currentTime: number) {
+			const elapsed = currentTime - startTime;
+			const progress = Math.min(elapsed / ANIMATION_DURATION, 1);
+			const easedProgress = easeOutCubic(progress);
+
+			// Interpolate values
+			zoomState.scale = startScale + (targetScale - startScale) * easedProgress;
+			zoomState.offsetX = startOffsetX + (targetOffsetX - startOffsetX) * easedProgress;
+			zoomState.offsetY = startOffsetY + (targetOffsetY - startOffsetY) * easedProgress;
+
+			// Render frame
+			if (currentImage) {
+				renderImageToCanvas(currentImage);
+			}
+
+			// Continue animation if not complete
+			if (progress < 1) {
+				animationFrameId = requestAnimationFrame(animate);
+			} else {
+				animationFrameId = null;
+				isAnimating = false;
+				// Ensure final values are exact
+				zoomState.scale = targetScale;
+				zoomState.offsetX = targetOffsetX;
+				zoomState.offsetY = targetOffsetY;
+				zoomState.clampOffset();
+				if (currentImage) {
+					renderImageToCanvas(currentImage);
+				}
+				console.log(`[Animate] Complete: scale ${targetScale.toFixed(3)}`);
+			}
+		}
+
+		animationFrameId = requestAnimationFrame(animate);
+	}
+
+	// Computed cursor style based on pan state
+	let cursorStyle = $derived(() => {
+		if (!imageLoaded) return 'default';
+		if (isPanning) return 'grabbing';
+		if (zoomState.isPannable) return 'grab';
+		return 'crosshair';
+	});
+
+	// Mouse tracking functions - now accounts for zoom and pan
 	function handleMouseMove(event: MouseEvent) {
 		if (!canvasElement || !imageContainer || !imageLoaded) return;
-		
+
+		// Handle panning if active
+		if (isPanning) {
+			const deltaX = event.clientX - lastPanX;
+			const deltaY = event.clientY - lastPanY;
+			zoomState.pan(deltaX, deltaY);
+			lastPanX = event.clientX;
+			lastPanY = event.clientY;
+			
+			// Re-render after pan
+			if (currentImage) {
+				renderImageToCanvas(currentImage);
+			}
+			return;
+		}
+
+		// Calculate mouse position relative to canvas
 		const rect = canvasElement.getBoundingClientRect();
-		const containerRect = imageContainer.getBoundingClientRect();
-		
-		// Calculate relative position within the canvas bounds
-		const x = Math.round(event.clientX - rect.left);
-		const y = Math.round(event.clientY - rect.top);
-		
+		const canvasX = event.clientX - rect.left;
+		const canvasY = event.clientY - rect.top;
+
 		// Check if mouse is within canvas bounds
-		const isWithinImage = x >= 0 && x < rect.width && y >= 0 && y < rect.height;
-		
-		if (isWithinImage) {
-			// Scale coordinates to original image dimensions
-			const scaleX = imageNaturalWidth / rect.width;
-			const scaleY = imageNaturalHeight / rect.height;
-			
-			const originalX = Math.round(x * scaleX);
-			const originalY = Math.round(y * scaleY);
-			
-			mouseCoords.updatePosition(originalX, originalY);
-			mouseCoords.setOverImage(true);
+		const isWithinCanvas = canvasX >= 0 && canvasX < rect.width && canvasY >= 0 && canvasY < rect.height;
+
+		if (isWithinCanvas) {
+			// Convert canvas coordinates to image coordinates (accounting for zoom and pan)
+			const imageX = (canvasX - zoomState.offsetX) / zoomState.scale;
+			const imageY = (canvasY - zoomState.offsetY) / zoomState.scale;
+
+			// Check if within actual image bounds
+			const isWithinImage = imageX >= 0 && imageX < imageNaturalWidth && 
+			                      imageY >= 0 && imageY < imageNaturalHeight;
+
+			if (isWithinImage) {
+				mouseCoords.updatePosition(Math.round(imageX), Math.round(imageY));
+				mouseCoords.setOverImage(true);
+			} else {
+				mouseCoords.setOverImage(false);
+			}
 		} else {
 			mouseCoords.setOverImage(false);
 		}
 	}
-	
+
 	function handleMouseEnter() {
-		mouseCoords.setOverImage(true);
+		if (imageLoaded) {
+			mouseCoords.setOverImage(true);
+		}
 	}
-	
+
 	function handleMouseLeave() {
 		mouseCoords.setOverImage(false);
 		mouseCoords.reset();
+		
+		// Cancel any active pan
+		if (isPanning) {
+			isPanning = false;
+		}
+	}
+
+	// Mouse down handler for panning
+	function handleMouseDown(event: MouseEvent) {
+		if (!imageLoaded || !zoomState.isPannable) return;
+		
+		// Only start pan on left mouse button
+		if (event.button !== 0) return;
+
+		isPanning = true;
+		lastPanX = event.clientX;
+		lastPanY = event.clientY;
+		
+		// Prevent text selection while dragging
+		event.preventDefault();
+	}
+
+	// Mouse up handler to stop panning
+	function handleMouseUp() {
+		isPanning = false;
+	}
+
+	// Wheel handler - scroll to pan, pinch/Cmd+scroll to zoom
+	function handleWheel(event: WheelEvent) {
+		if (!imageLoaded || !canvasElement) return;
+
+		event.preventDefault();
+
+		const rect = canvasElement.getBoundingClientRect();
+		const cursorX = event.clientX - rect.left;
+		const cursorY = event.clientY - rect.top;
+
+		// Pinch gesture on trackpad reports as ctrlKey=true
+		// Cmd+scroll also triggers zoom (metaKey on macOS)
+		const isZoomGesture = event.ctrlKey || event.metaKey;
+
+		if (isZoomGesture) {
+			// Zoom mode: pinch or Cmd+scroll
+			const zoomIn = event.deltaY < 0;
+			zoomState.zoomToPoint(zoomIn, cursorX, cursorY);
+
+			if (currentImage) {
+				renderImageToCanvas(currentImage);
+			}
+
+			logTauri(`[ImageViewer] Zoom ${zoomIn ? 'in' : 'out'} to ${zoomState.percentage} at (${cursorX.toFixed(0)}, ${cursorY.toFixed(0)})`, "debug");
+		} else {
+			// Pan mode: regular scroll (vertical and horizontal)
+			// Invert delta for natural scrolling feel (content follows fingers)
+			const panDeltaX = -event.deltaX;
+			const panDeltaY = -event.deltaY;
+
+			if (panDeltaX !== 0 || panDeltaY !== 0) {
+				zoomState.pan(panDeltaX, panDeltaY);
+
+				if (currentImage) {
+					renderImageToCanvas(currentImage);
+				}
+			}
+		}
 	}
 
 	// Computed image source URL
 	let imageSrc = $derived(() => {
 		if (fileService.currentFile) {
-			// Convert file path to asset URL for Tauri
 			const originalPath = fileService.currentFile.path;
 			const assetUrl = convertFileSrc(originalPath);
 			console.log('[ImageViewer] File path:', originalPath);
@@ -98,13 +258,22 @@
 		imageNaturalWidth = img.naturalWidth;
 		imageNaturalHeight = img.naturalHeight;
 		currentImage = img;
-		
+
 		// Update shared image metadata store
 		imageMetadata.setDimensions(img.naturalWidth, img.naturalHeight);
-		
+
+		// Update zoom state with image and container dimensions
+		zoomState.setDimensions(
+			{ width: img.naturalWidth, height: img.naturalHeight },
+			{ width: canvasWidth, height: canvasHeight }
+		);
+
+		// Set initial zoom to fit window
+		zoomState.setFitToWindow();
+
 		// Render image to canvas
 		renderImageToCanvas(img);
-		
+
 		console.log(`[ImageViewer] Image loaded successfully: ${imageNaturalWidth}x${imageNaturalHeight}`);
 		console.log(`[ImageViewer] Image src: ${img.src}`);
 		logTauri(`[ImageViewer] Image loaded: ${imageNaturalWidth}x${imageNaturalHeight} from ${img.src}`, "info");
@@ -120,8 +289,7 @@
 		console.error('[ImageViewer] Error event:', event);
 		console.error('[ImageViewer] Image element:', target);
 		logTauri(`[ImageViewer] Image load failed - URL: ${target.src}, Original: ${fileService.currentFile?.path}`, "error");
-		
-		// Additional debugging for the error event
+
 		if (event instanceof ErrorEvent) {
 			console.error('[ImageViewer] Error details:', event.message);
 			logTauri(`[ImageViewer] Error details: ${event.message}`, "error");
@@ -131,49 +299,60 @@
 	// Canvas rendering functions
 	function initializeCanvas() {
 		if (!canvasElement || !imageContainer) return;
-		
-		// Get 2D context with alpha enabled for better quality
-		ctx = canvasElement.getContext('2d', { 
-			alpha: false, // Disable alpha for better performance
-			desynchronized: true, // Allow desynchronized rendering for better performance
-			willReadFrequently: false // Optimize for writing, not reading
+
+		ctx = canvasElement.getContext('2d', {
+			alpha: false,
+			desynchronized: true,
+			willReadFrequently: false
 		});
-		
+
 		if (!ctx) {
 			console.error('[ImageViewer] Failed to get 2D context');
 			return;
 		}
-		
-		// Enable image smoothing for better quality
+
 		ctx.imageSmoothingEnabled = true;
 		ctx.imageSmoothingQuality = 'high';
-		
-		// Set canvas size to match container
+
 		resizeCanvas();
 	}
 
 	function resizeCanvas() {
 		if (!canvasElement || !imageContainer) return;
-		
+
 		const containerRect = imageContainer.getBoundingClientRect();
 		const dpr = window.devicePixelRatio || 1;
-		
-		// Set actual canvas size (accounting for device pixel ratio)
+
 		canvasWidth = Math.floor(containerRect.width);
 		canvasHeight = Math.floor(containerRect.height);
-		
+
 		canvasElement.width = canvasWidth * dpr;
 		canvasElement.height = canvasHeight * dpr;
-		
-		// Scale CSS size back down
+
 		canvasElement.style.width = canvasWidth + 'px';
 		canvasElement.style.height = canvasHeight + 'px';
-		
-		// Scale the drawing context to account for device pixel ratio
+
 		if (ctx) {
+			ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
 			ctx.scale(dpr, dpr);
 		}
-		
+
+		// Update zoom state with new container dimensions
+		if (imageNaturalWidth > 0 && imageNaturalHeight > 0) {
+			zoomState.setDimensions(
+				{ width: imageNaturalWidth, height: imageNaturalHeight },
+				{ width: canvasWidth, height: canvasHeight }
+			);
+
+			// If in fit mode, recalculate fit (but not during animation)
+			if (zoomState.mode === 'fit' && !isAnimating) {
+				zoomState.setFitToWindow();
+			} else if (!isAnimating) {
+				// Just clamp the offset for current zoom level
+				zoomState.clampOffset();
+			}
+		}
+
 		// Re-render current image if loaded
 		if (currentImage && imageLoaded) {
 			renderImageToCanvas(currentImage);
@@ -182,35 +361,35 @@
 
 	function renderImageToCanvas(img: HTMLImageElement) {
 		if (!ctx || !canvasElement) return;
+
+		const dpr = window.devicePixelRatio || 1;
+
+		// Reset transform and clear canvas
+		ctx.setTransform(1, 0, 0, 1, 0, 0);
+		ctx.scale(dpr, dpr);
 		
-		// Clear canvas
-		ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-		
-		// Calculate display dimensions (fit to canvas while maintaining aspect ratio)
-		const imgAspect = img.naturalWidth / img.naturalHeight;
-		const canvasAspect = canvasWidth / canvasHeight;
-		
-		let drawWidth, drawHeight, offsetX, offsetY;
-		
-		if (imgAspect > canvasAspect) {
-			// Image is wider than canvas aspect ratio
-			drawWidth = canvasWidth;
-			drawHeight = canvasWidth / imgAspect;
-			offsetX = 0;
-			offsetY = (canvasHeight - drawHeight) / 2;
-		} else {
-			// Image is taller than canvas aspect ratio
-			drawHeight = canvasHeight;
-			drawWidth = canvasHeight * imgAspect;
-			offsetX = (canvasWidth - drawWidth) / 2;
-			offsetY = 0;
-		}
-		
-		// Draw image to canvas with high quality
-		ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
-		
-		console.log(`[ImageViewer] Rendered image to canvas: ${drawWidth}x${drawHeight} at ${offsetX},${offsetY}`);
-		logTauri(`[ImageViewer] Canvas render complete: ${drawWidth.toFixed(1)}x${drawHeight.toFixed(1)}`, "debug");
+		// Fill with dark background
+		ctx.fillStyle = 'hsl(220, 8%, 8%)';
+		ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+		// Enable high quality rendering
+		ctx.imageSmoothingEnabled = true;
+		ctx.imageSmoothingQuality = 'high';
+
+		// Calculate scaled image dimensions
+		const scaledWidth = img.naturalWidth * zoomState.scale;
+		const scaledHeight = img.naturalHeight * zoomState.scale;
+
+		// Draw image at current zoom and pan position
+		ctx.drawImage(
+			img,
+			zoomState.offsetX,
+			zoomState.offsetY,
+			scaledWidth,
+			scaledHeight
+		);
+
+		console.log(`[ImageViewer] Rendered: scale=${zoomState.percentage}, offset=(${zoomState.offsetX.toFixed(1)}, ${zoomState.offsetY.toFixed(1)}), size=${scaledWidth.toFixed(1)}x${scaledHeight.toFixed(1)}`);
 	}
 
 	// Load image when source changes
@@ -233,29 +412,24 @@
 	$effect(() => {
 		if (fileService.currentFile) {
 			console.log('[ImageViewer] File changed, resetting states for:', fileService.currentFile.name);
-			console.log('[ImageViewer] New file details:', {
-				path: fileService.currentFile.path,
-				name: fileService.currentFile.name,
-				extension: fileService.currentFile.extension,
-				size: fileService.currentFile.size,
-				formattedSize: fileService.currentFile.formattedSize
-			});
 			logTauri(`[ImageViewer] File changed to: ${fileService.currentFile.name} (${fileService.currentFile.formattedSize})`, "info");
-			
+
 			imageLoaded = false;
 			imageError = false;
 			imageNaturalWidth = 0;
 			imageNaturalHeight = 0;
 			currentImage = null;
-			
-			// Reset shared image metadata
+			isPanning = false;
+
+			// Reset shared stores
 			imageMetadata.reset();
+			zoomState.reset();
 		} else {
 			console.log('[ImageViewer] File cleared');
 			logTauri("[ImageViewer] Current file cleared", "info");
-			
-			// Reset shared image metadata
+
 			imageMetadata.reset();
+			zoomState.reset();
 		}
 	});
 
@@ -263,13 +437,16 @@
 	$effect(() => {
 		if (canvasElement && imageContainer) {
 			initializeCanvas();
-			
-			// Listen for window resize to update canvas
+
 			const handleResize = () => resizeCanvas();
 			window.addEventListener('resize', handleResize);
-			
+
+			// Also listen for mouseup on window to catch releases outside canvas
+			window.addEventListener('mouseup', handleMouseUp);
+
 			return () => {
 				window.removeEventListener('resize', handleResize);
+				window.removeEventListener('mouseup', handleMouseUp);
 			};
 		}
 	});
@@ -281,7 +458,7 @@
 				try {
 					imageLoaded = false;
 					imageError = false;
-					
+
 					const img = await loadImage(imageSource);
 					handleImageLoad(img);
 				} catch (error) {
@@ -290,6 +467,21 @@
 					imageLoaded = false;
 				}
 			})();
+		}
+	});
+
+	// Re-render when zoom state changes (for scroll/pinch - not animated)
+	$effect(() => {
+		// Track zoom state changes
+		const _ = zoomState.scale;
+		const __ = zoomState.offsetX;
+		const ___ = zoomState.offsetY;
+		
+		// Skip if animation is handling rendering
+		if (isAnimating) return;
+		
+		if (currentImage && imageLoaded && ctx) {
+			renderImageToCanvas(currentImage);
 		}
 	});
 
@@ -308,27 +500,169 @@
 		console.log('[ImageViewer] State change - isLoading:', fileService.isLoading, 'imageError:', imageError, 'imageLoaded:', imageLoaded);
 		logTauri(`[ImageViewer] State: isLoading=${fileService.isLoading}, imageError=${imageError}, imageLoaded=${imageLoaded}`, "debug");
 	});
+
+	// Listen for zoom commands from toolbar and execute with animation
+	$effect(() => {
+		const command = zoomState.pendingCommand;
+		if (!command) return;
+		
+		console.log(`[ZoomCommand] Received: ${command}, imageLoaded: ${imageLoaded}`);
+		
+		if (!imageLoaded) {
+			zoomState.clearCommand();
+			return;
+		}
+
+		// Clear command immediately to prevent re-execution
+		zoomState.clearCommand();
+
+		// Execute the command with animation
+		switch (command) {
+			case "zoomIn":
+				zoomIn();
+				break;
+			case "zoomOut":
+				zoomOut();
+				break;
+			case "fitToWindow":
+				fitToWindow();
+				break;
+			case "actualSize":
+				actualSize();
+				break;
+		}
+	});
+
+	// Export function for external zoom control (toolbar) with smooth animations
+	export function zoomIn() {
+		if (!imageLoaded) return;
+		
+		const zoomStep = 1.25; // Larger step for button clicks (25%)
+		const targetScale = Math.min(10, zoomState.scale * zoomStep);
+		
+		// Calculate target offsets to keep image centered after zoom
+		const scaledWidth = imageNaturalWidth * targetScale;
+		const scaledHeight = imageNaturalHeight * targetScale;
+		
+		// If image will be smaller than container, center it
+		// Otherwise, zoom towards center while keeping relative position
+		let targetOffsetX: number;
+		let targetOffsetY: number;
+		
+		if (scaledWidth <= canvasWidth) {
+			targetOffsetX = (canvasWidth - scaledWidth) / 2;
+		} else {
+			// Keep the center point fixed during zoom
+			const centerX = canvasWidth / 2;
+			const scaleRatio = targetScale / zoomState.scale;
+			targetOffsetX = centerX - (centerX - zoomState.offsetX) * scaleRatio;
+			// Clamp to valid range
+			targetOffsetX = Math.max(canvasWidth - scaledWidth, Math.min(0, targetOffsetX));
+		}
+		
+		if (scaledHeight <= canvasHeight) {
+			targetOffsetY = (canvasHeight - scaledHeight) / 2;
+		} else {
+			const centerY = canvasHeight / 2;
+			const scaleRatio = targetScale / zoomState.scale;
+			targetOffsetY = centerY - (centerY - zoomState.offsetY) * scaleRatio;
+			targetOffsetY = Math.max(canvasHeight - scaledHeight, Math.min(0, targetOffsetY));
+		}
+		
+		zoomState.mode = 'free';
+		console.log(`[ZoomIn] ${zoomState.scale.toFixed(3)} -> ${targetScale.toFixed(3)}`);
+		animateZoomTo(targetScale, targetOffsetX, targetOffsetY);
+	}
+
+	export function zoomOut() {
+		if (!imageLoaded) return;
+		
+		const zoomStep = 1.25;
+		const targetScale = Math.max(0.1, zoomState.scale / zoomStep);
+		
+		// Calculate target offsets
+		const scaledWidth = imageNaturalWidth * targetScale;
+		const scaledHeight = imageNaturalHeight * targetScale;
+		
+		let targetOffsetX: number;
+		let targetOffsetY: number;
+		
+		if (scaledWidth <= canvasWidth) {
+			targetOffsetX = (canvasWidth - scaledWidth) / 2;
+		} else {
+			const centerX = canvasWidth / 2;
+			const scaleRatio = targetScale / zoomState.scale;
+			targetOffsetX = centerX - (centerX - zoomState.offsetX) * scaleRatio;
+			targetOffsetX = Math.max(canvasWidth - scaledWidth, Math.min(0, targetOffsetX));
+		}
+		
+		if (scaledHeight <= canvasHeight) {
+			targetOffsetY = (canvasHeight - scaledHeight) / 2;
+		} else {
+			const centerY = canvasHeight / 2;
+			const scaleRatio = targetScale / zoomState.scale;
+			targetOffsetY = centerY - (centerY - zoomState.offsetY) * scaleRatio;
+			targetOffsetY = Math.max(canvasHeight - scaledHeight, Math.min(0, targetOffsetY));
+		}
+		
+		zoomState.mode = 'free';
+		console.log(`[ZoomOut] ${zoomState.scale.toFixed(3)} -> ${targetScale.toFixed(3)}`);
+		animateZoomTo(targetScale, targetOffsetX, targetOffsetY);
+	}
+
+	export function fitToWindow() {
+		if (!imageLoaded) return;
+		
+		// Calculate fit-to-window values
+		const scaleX = canvasWidth / imageNaturalWidth;
+		const scaleY = canvasHeight / imageNaturalHeight;
+		const targetScale = Math.min(scaleX, scaleY, 1);
+		
+		const scaledWidth = imageNaturalWidth * targetScale;
+		const scaledHeight = imageNaturalHeight * targetScale;
+		const targetOffsetX = (canvasWidth - scaledWidth) / 2;
+		const targetOffsetY = (canvasHeight - scaledHeight) / 2;
+		
+		console.log(`[FitToWindow] ${zoomState.scale.toFixed(3)} -> ${targetScale.toFixed(3)}`);
+		animateZoomTo(targetScale, targetOffsetX, targetOffsetY);
+		zoomState.mode = 'fit';
+	}
+
+	export function actualSize() {
+		if (!imageLoaded) return;
+		
+		// Calculate 100% values (centered)
+		const targetScale = 1;
+		const scaledWidth = imageNaturalWidth * targetScale;
+		const scaledHeight = imageNaturalHeight * targetScale;
+		const targetOffsetX = (canvasWidth - scaledWidth) / 2;
+		const targetOffsetY = (canvasHeight - scaledHeight) / 2;
+		
+		console.log(`[ActualSize] ${zoomState.scale.toFixed(3)} -> ${targetScale.toFixed(3)}`);
+		animateZoomTo(targetScale, targetOffsetX, targetOffsetY);
+		zoomState.mode = 'actual';
+	}
 </script>
 
-<div 
+<div
 	class="w-full h-full 
 	       flex flex-col 
 	       bg-transparent 
 	       relative overflow-hidden"
 >
 	{#if imageSource}
-		<div 
+		<div
 			class="flex-1 
 			       flex flex-col 
 			       relative w-full h-full"
 		>
 			{#if fileService.isLoading}
-				<div 
+				<div
 					class="flex-1 
 					       flex flex-col items-center justify-center 
 					       p-8 text-center"
 				>
-					<div 
+					<div
 						class="w-8 h-8 
 						       border-2 border-text/20 border-t-text 
 						       rounded-full 
@@ -337,7 +671,7 @@
 					<p class="mt-2 m-0 text-text/80">Loading image...</p>
 				</div>
 			{:else if imageError}
-				<div 
+				<div
 					class="flex-1 
 					       flex flex-col items-center justify-center 
 					       p-8 text-center 
@@ -351,37 +685,39 @@
 					<p class="text-sm text-text-muted/70">The image file may be corrupted or in an unsupported format.</p>
 				</div>
 			{:else}
-				<div 
+				<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+				<div
 					class="flex-1 
 					       flex items-center justify-center 
-					       p-5 
-					       relative w-full h-full"
+					       relative w-full h-full
+					       select-none"
 					bind:this={imageContainer}
 					onmousemove={handleMouseMove}
 					onmouseenter={handleMouseEnter}
 					onmouseleave={handleMouseLeave}
-					role="img"
-					aria-label="Image viewer area"
+					onmousedown={handleMouseDown}
+					onmouseup={handleMouseUp}
+					onwheel={handleWheel}
+					role="application"
+					aria-label="Image viewer - scroll to zoom, drag to pan"
 				>
 					<canvas
 						bind:this={canvasElement}
-						class="max-w-full max-h-full 
-						       rounded shadow-lg 
-						       opacity-0 transition-opacity duration-300 ease-in-out
-						       cursor-crosshair"
+						class="w-full h-full
+						       opacity-0 transition-opacity duration-300 ease-in-out"
 						class:opacity-100={imageLoaded}
-						style="image-rendering: high-quality;"
+						style="cursor: {cursorStyle()};"
 						aria-label={fileService.currentFile?.name || 'Image'}
 					></canvas>
-					
+
 					{#if !imageLoaded}
-						<div 
+						<div
 							class="absolute top-1/2 left-1/2 
 							       transform -translate-x-1/2 -translate-y-1/2 
 							       flex flex-col items-center 
 							       gap-2"
 						>
-							<div 
+							<div
 								class="w-8 h-8 
 								       border-2 border-text/20 border-t-text 
 								       rounded-full 
@@ -394,5 +730,3 @@
 		</div>
 	{/if}
 </div>
-
-

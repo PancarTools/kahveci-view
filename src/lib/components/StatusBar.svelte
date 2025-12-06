@@ -2,11 +2,13 @@
 	import { getFileService } from '$lib/stores/fileService.svelte';
 	import { getMouseCoordinates } from '$lib/stores/mouseCoordinates.svelte';
 	import { getImageMetadata } from '$lib/stores/imageMetadata.svelte';
+	import { getZoomState } from '$lib/stores/zoomStore.svelte';
 	import { CheckCircle, XCircle, Loader2 } from '$lib/icons';
 
 	const fileService = getFileService();
 	const mouseCoords = getMouseCoordinates();
 	const imageMetadata = getImageMetadata();
+	const zoomState = getZoomState();
 
 	function formatCoordinates(): string {
 		if (!mouseCoords.isOverImage) return "—";
@@ -59,8 +61,12 @@
 		</span>
 	</div>
 
-	<!-- Right: Mouse Coordinates -->
-	<div class="flex items-center gap-1 flex-none">
+	<!-- Right: Zoom & Mouse Coordinates -->
+	<div class="flex items-center gap-3 flex-none">
+		{#if fileService.currentFile && imageMetadata.isLoaded}
+			<span class="font-mono text-brand-primary text-xs font-medium min-w-[40px] text-right">{zoomState.percentage}</span>
+			<span class="text-brand-muted/40">•</span>
+		{/if}
 		<span class="text-brand-muted/60 text-xs">XY:</span>
 		<span class="font-mono text-brand-white text-xs min-w-[50px]">{formatCoordinates()}</span>
 	</div>

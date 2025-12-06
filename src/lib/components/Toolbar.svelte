@@ -1,14 +1,17 @@
 <script lang="ts">
 	import { getFileService } from '$lib/stores/fileService.svelte';
+	import { getZoomState } from '$lib/stores/zoomStore.svelte';
 	import { logger } from '$lib/utils/logger';
 	import { 
 		FolderOpen, Save, Printer, FolderTree,
 		Undo, Redo, MousePointer, Copy, Clipboard, Scissors, Crop,
 		RotateCcw, RotateCw,
+		ZoomIn, ZoomOut, Maximize, Square,
 		Minus, WindowSquare, X
 	} from '$lib/icons';
 
 	const fileService = getFileService();
+	const zoomState = getZoomState();
 
 	async function handleOpenImage() {
 		logger.debug("Toolbar open image button clicked", "TOOLBAR");
@@ -28,6 +31,24 @@
 	function handleCrop() { logger.debug("Crop clicked (mock)", "TOOLBAR"); }
 	function handleRotateLeft() { logger.debug("Rotate left clicked (mock)", "TOOLBAR"); }
 	function handleRotateRight() { logger.debug("Rotate right clicked (mock)", "TOOLBAR"); }
+
+	// Zoom controls (use request methods for animated transitions)
+	function handleZoomIn() {
+		logger.debug("Zoom in clicked", "TOOLBAR");
+		zoomState.requestZoomIn();
+	}
+	function handleZoomOut() {
+		logger.debug("Zoom out clicked", "TOOLBAR");
+		zoomState.requestZoomOut();
+	}
+	function handleFitToWindow() {
+		logger.debug("Fit to window clicked", "TOOLBAR");
+		zoomState.requestFitToWindow();
+	}
+	function handleActualSize() {
+		logger.debug("Actual size (100%) clicked", "TOOLBAR");
+		zoomState.requestActualSize();
+	}
 
 	// Window controls
 	async function handleMinimize() { 
@@ -248,6 +269,46 @@
 			title="Rotate Right (Ctrl+R)"
 		>
 			<RotateCw class={iconClass} />
+		</button>
+
+		<!-- Separator -->
+		<div class="w-px h-5 bg-brand-subtle mx-2"></div>
+
+		<!-- Zoom Controls Group -->
+		<button 
+			class={buttonClass}
+			onclick={handleZoomOut}
+			disabled={!fileService.currentFile || !zoomState.canZoomOut}
+			title="Zoom Out"
+		>
+			<ZoomOut class={iconClass} />
+		</button>
+
+		<button 
+			class={buttonClass}
+			onclick={handleZoomIn}
+			disabled={!fileService.currentFile || !zoomState.canZoomIn}
+			title="Zoom In"
+		>
+			<ZoomIn class={iconClass} />
+		</button>
+
+		<button 
+			class={buttonClass}
+			onclick={handleFitToWindow}
+			disabled={!fileService.currentFile}
+			title="Fit to Window"
+		>
+			<Maximize class={iconClass} />
+		</button>
+
+		<button 
+			class={buttonClass}
+			onclick={handleActualSize}
+			disabled={!fileService.currentFile}
+			title="Actual Size (100%)"
+		>
+			<Square class={iconClass} />
 		</button>
 	</div>
 

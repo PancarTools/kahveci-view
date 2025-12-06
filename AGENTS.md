@@ -1,4 +1,4 @@
-# Copilot Custom Instructions for Kahveci View
+# Copilot Custom Instructions for pancar-do
 
 - **Always use Svelte 5 runes syntax** for all Svelte components and code examples. Avoid legacy Svelte syntax.
 - use custom svelte classes with svelte 5 runes($state) for state management. example:
@@ -10,15 +10,15 @@ class Counter {
 	count = $state(0);
 
 	increment() {
-		this.count++;
+		this.count.set(this.count.get() + 1);
 	}
 
 	decrement() {
-		this.count--;
+		this.count.set(this.count.get() - 1);
 	}
 
 	reset() {
-		this.count = 0;
+		this.count.set(0);
 	}
 }
 
@@ -30,65 +30,6 @@ export function getCounter(key: symbol = DEFAULT_COUNTER_KEY): Counter {
 	}
 	return counterStore.get(key)!;
 }
-```
-
-- for cross-component communication where one component needs to trigger actions in another, use a **command queue pattern** in the store:
-
-```typescript
-// In store
-type Command = "action1" | "action2" | null;
-pendingCommand = $state<Command>(null);
-
-requestAction1() {
-	this.pendingCommand = "action1";
-}
-
-clearCommand() {
-	this.pendingCommand = null;
-}
-
-// In component that executes commands
-$effect(() => {
-	const command = store.pendingCommand;
-	if (!command) return;
-	store.clearCommand();
-
-	switch (command) {
-		case "action1":
-			doAction1();
-			break;
-	}
-});
-```
-
-- for smooth animations, use **requestAnimationFrame** with an `isAnimating` flag to prevent reactive effects from interfering:
-
-```typescript
-let isAnimating = $state(false);
-
-function animateTo(target: number) {
-	isAnimating = true;
-	const start = currentValue;
-	const startTime = performance.now();
-
-	function animate(time: number) {
-		const progress = Math.min((time - startTime) / 250, 1);
-		currentValue = start + (target - start) * easeOutCubic(progress);
-
-		if (progress < 1) {
-			requestAnimationFrame(animate);
-		} else {
-			isAnimating = false;
-		}
-	}
-	requestAnimationFrame(animate);
-}
-
-// In reactive effects, skip during animation
-$effect(() => {
-	if (isAnimating) return;
-	// ... effect logic
-});
 ```
 
 - **Always use Tauri v2 APIs and conventions** for all Tauri-related code, including Rust backend and JavaScript/TypeScript frontend integration.

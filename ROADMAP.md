@@ -10,7 +10,7 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 
 **Phase 1: COMPLETED ✅ | Phase 2: COMPLETED ✅ | Phase 3: IN PROGRESS 🚀**
 
-**Latest Achievement**: Advanced image coordinate system with accurate original pixel coordinate tracking and real-time image metadata display using shared Svelte 5 runes stores
+**Latest Achievement**: Polished zoom system with smooth animated transitions for all toolbar controls, trackpad scroll for panning, and pinch/Cmd+scroll for zoom-to-cursor
 
 ---
 
@@ -170,18 +170,23 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 
 ---
 
-## Phase 3: Advanced Viewing & Navigation (NEXT 🚀)
+## Phase 3: Advanced Viewing & Navigation (IN PROGRESS 🚀)
 
 **Goal**: Enhanced viewing capabilities and image navigation
 
-### 3.1 Zoom & Pan System
+### 3.1 Zoom & Pan System (COMPLETED ✅)
 
-- [ ] Zoom state management with Svelte 5 runes
-- [ ] Zoom in/out controls in toolbar
-- [ ] Fit-to-window and actual size (100%) modes
-- [ ] Smooth zoom with mouse wheel
-- [ ] Pan with mouse drag for zoomed images
-- [ ] Zoom level display in status bar
+- [x] Zoom state management with Svelte 5 runes
+- [x] Zoom in/out controls in toolbar with smooth animated transitions
+- [x] Fit-to-window and actual size (100%) modes with smooth animations
+- [x] Pinch-to-zoom and Cmd+scroll zoom (zoom-to-cursor like Apple Preview)
+- [x] Trackpad scroll for panning (vertical and horizontal)
+- [x] Pan with mouse drag for zoomed images
+- [x] Zoom level display in status bar (real-time percentage)
+- [x] Boundary clamping (image edges can't go past viewport)
+- [x] Cursor feedback (grab/grabbing for pan, crosshair for normal)
+- [x] Smooth eased animations (ease-out cubic, 250ms duration)
+- [x] Command-based toolbar communication for animated transitions
 
 ### 3.2 Image Navigation
 
@@ -440,26 +445,25 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 
 ## 🚀 Next Steps
 
-### **Current Status**: Phase 2 Complete ✅ - Ready for Phase 3
+### **Current Status**: Phase 3.1 Complete ✅ - Zoom & Pan System with Smooth Animations
 
-**Last Achievement**: Advanced image coordinate system with original pixel coordinate tracking and real-time metadata display
+**Last Achievement**: Polished zoom system with smooth animated transitions, trackpad scroll for panning, pinch/Cmd+scroll for zoom-to-cursor
 
-### **Immediate Next Task (3.1.1)**: Implement Zoom System
+### **Immediate Next Task (3.2)**: Image Navigation
 
-**Estimated Time**: 1-2 hours  
-**Goal**: Add zoom state management and basic zoom controls
+**Goal**: Navigate between images in a folder
 
 **Steps**:
 
-1. Create zoom store with Svelte 5 runes
-2. Add zoom in/out buttons to toolbar
-3. Implement fit-to-window and actual size modes
-4. Update ImageViewer to respect zoom level
+1. Implement folder scanning for sibling images
+2. Add previous/next navigation buttons to toolbar
+3. Add arrow key keyboard navigation
+4. Jump to first/last image functionality
 
-### **This Week's Target**: Complete Phase 3.1 (Zoom & Pan System)
+### **This Week's Target**: Complete Phase 3.2 (Image Navigation)
 
-**Estimated Time**: 4-6 hours  
-**Outcome**: Professional zoom and pan functionality
+**Estimated Time**: 2-3 hours  
+**Outcome**: Seamless navigation between images in a folder
 
 ### **Next Sprint Goal**: Complete Phase 3 (Advanced Viewing & Navigation)
 
@@ -467,5 +471,5 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 
 ---
 
-_Last Updated: November 29, 2025_  
-_Current Phase: Ready for Phase 3 - Advanced Viewing & Navigation 🚀_
+_Last Updated: December 5, 2025_  
+_Current Phase: Phase 3 - Advanced Viewing & Navigation (3.1 Complete) 🚀_
