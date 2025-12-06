@@ -1,6 +1,7 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { stat } from "@tauri-apps/plugin-fs";
 import { invoke } from "@tauri-apps/api/core";
+import { getNavigationStore } from "./navigationStore.svelte";
 
 // Supported image formats
 export const SUPPORTED_FORMATS = ["jpg", "jpeg", "png", "gif", "webp", "bmp", "tiff", "tif", "svg"];
@@ -24,6 +25,10 @@ class FileService {
 	currentFile = $state<FileInfo | null>(null);
 	error = $state<string | null>(null);
 	isLoading = $state(false);
+
+	// Flag to indicate if current load is from navigation (prev/next)
+	// When true, skip showing loading spinner
+	isNavigating = $state(false);
 
 	async openFile(): Promise<FileInfo | null> {
 		try {
@@ -79,6 +84,11 @@ class FileService {
 					"info"
 				);
 				await logTauri(`[FileService] Full file path: ${fileInfo.path}`, "debug");
+
+				// Trigger folder scan for navigation
+				const navStore = getNavigationStore();
+				navStore.scanFolder(fileInfo.path);
+
 				return fileInfo;
 			}
 
@@ -258,13 +268,15 @@ class FileService {
 		return this.validateImageFormat(fileInfo.extension);
 	}
 
-	async openFileByPath(filePath: string): Promise<FileInfo | null> {
+	async openFileByPath(filePath: string, skipFolderScan = false): Promise<FileInfo | null> {
 		try {
 			this.isLoading = true;
 			this.error = null;
+			// Set navigation flag - skipFolderScan=true means this is a prev/next navigation
+			this.isNavigating = skipFolderScan;
 
-			await logTauri(`[FileService] Loading file by path: ${filePath}`, "info");
-			console.log("[FileService] Loading file by path:", filePath);
+			await logTauri(`[FileService] Loading file by path: ${filePath}${skipFolderScan ? " (navigation)" : ""}`, "info");
+			console.log("[FileService] Loading file by path:", filePath, skipFolderScan ? "(navigation)" : "");
 
 			// Validate and extract file info
 			if (!this.isValidPath(filePath)) {
@@ -290,6 +302,12 @@ class FileService {
 				"info"
 			);
 
+			// Trigger folder scan for navigation (unless skipped for navigation)
+			if (!skipFolderScan) {
+				const navStore = getNavigationStore();
+				navStore.scanFolder(fileInfo.path);
+			}
+
 			console.log("[FileService] File successfully loaded:", fileInfo);
 			return fileInfo;
 		} catch (error) {
@@ -300,6 +318,7 @@ class FileService {
 			return null;
 		} finally {
 			this.isLoading = false;
+			this.isNavigating = false;
 		}
 	}
 
@@ -310,6 +329,10 @@ class FileService {
 	clearFile() {
 		this.currentFile = null;
 		this.error = null;
+
+		// Reset navigation
+		const navStore = getNavigationStore();
+		navStore.reset();
 	}
 }
 

@@ -1453,6 +1453,158 @@ Refined zoom steps for better control:
 
 ---
 
+### Phase 3.2: Image Navigation (Completed ✅)
+
+**Date**: December 5, 2025
+
+**Objective**: Implement folder-based image navigation with keyboard shortcuts and preloading
+
+**Technical Implementation**:
+
+**1. Navigation Store (`navigationStore.svelte.ts`)**:
+
+New Svelte 5 runes-based store for navigation state:
+
+```typescript
+class NavigationStore {
+	images = $state<string[]>([]); // All images in folder
+	currentIndex = $state(-1); // Current position
+	currentFolder = $state<string | null>(null);
+	isScanning = $state(false);
+
+	// Derived values
+	get totalImages(): number;
+	get canGoNext(): boolean;
+	get canGoPrev(): boolean;
+	get positionText(): string; // "3 / 25"
+
+	// Navigation methods
+	async scanFolder(filePath: string): Promise<void>;
+	goNext(): string | null;
+	goPrev(): string | null;
+	goFirst(): string | null;
+	goLast(): string | null;
+
+	// Preloading
+	private preloadAdjacent(): void;
+}
+```
+
+**2. Folder Scanning**:
+
+Uses Tauri's `readDir` API to scan folder when image opens:
+
+```typescript
+async scanFolder(filePath: string) {
+	const entries = await readDir(folderPath);
+
+	// Filter for supported image formats
+	const imageFiles = entries
+		.filter((e) => e.isFile && SUPPORTED_FORMATS.includes(getExtension(e.name)))
+		.map((e) => joinPath(folderPath, e.name));
+
+	// Sort alphabetically (natural sort for numbers)
+	imageFiles.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+	this.images = imageFiles;
+	this.currentIndex = imageFiles.findIndex((p) => getFileName(p) === fileName);
+}
+```
+
+**3. Adjacent Image Preloading**:
+
+Preloads next/previous images into browser cache for instant navigation:
+
+```typescript
+private preloadAdjacent(): void {
+	if (this.currentIndex < this.images.length - 1) {
+		const nextUrl = convertFileSrc(this.images[this.currentIndex + 1]);
+		new Image().src = nextUrl; // Browser caches it
+	}
+	if (this.currentIndex > 0) {
+		const prevUrl = convertFileSrc(this.images[this.currentIndex - 1]);
+		new Image().src = prevUrl;
+	}
+}
+```
+
+**4. Keyboard Navigation**:
+
+Global keyboard handler in `+page.svelte`:
+
+```typescript
+function handleKeydown(event: KeyboardEvent) {
+	switch (event.key) {
+		case "ArrowLeft":
+			navStore.goPrev();
+			break;
+		case "ArrowRight":
+			navStore.goNext();
+			break;
+		case "Home":
+			navStore.goFirst();
+			break;
+		case "End":
+			navStore.goLast();
+			break;
+	}
+}
+```
+
+**5. FileService Integration**:
+
+Modified to trigger folder scan and support navigation:
+
+```typescript
+async openFileByPath(filePath: string, skipFolderScan = false) {
+	// ... load file ...
+
+	// Trigger folder scan (unless navigating)
+	if (!skipFolderScan) {
+		navStore.scanFolder(filePath);
+	}
+}
+```
+
+**Files Created/Modified**:
+
+- `src/lib/stores/navigationStore.svelte.ts` (NEW): Navigation state management
+- `src/lib/stores/fileService.svelte.ts`: Folder scan integration, skipFolderScan parameter
+- `src/lib/components/Toolbar.svelte`: Prev/Next buttons with ChevronLeft/Right icons
+- `src/lib/components/StatusBar.svelte`: Position indicator ("3 / 25")
+- `src/routes/+page.svelte`: Keyboard event handler
+
+**User Experience**:
+
+| Input      | Action                  |
+| ---------- | ----------------------- |
+| ← Arrow    | Previous image          |
+| → Arrow    | Next image              |
+| Home       | First image in folder   |
+| End        | Last image in folder    |
+| Toolbar ‹  | Previous image          |
+| Toolbar ›  | Next image              |
+| Status bar | Shows "3 / 25" position |
+
+**Performance Features**:
+
+- **Preloading**: Adjacent images loaded in background for instant display
+- **Efficient scanning**: Single folder scan, cached until new file opened
+- **Natural sorting**: Numbers sorted correctly (img2 < img10)
+
+**Validation Results**:
+
+- ✅ Folder scanning finds all supported image formats
+- ✅ Navigation buttons enabled/disabled correctly
+- ✅ Keyboard shortcuts work (arrows, Home, End)
+- ✅ Position indicator updates in real-time
+- ✅ Preloading makes navigation feel instant
+- ✅ Alphabetical sorting with numeric awareness
+
+**Deliverable**: ✅ Complete image navigation system with folder scanning, keyboard shortcuts, toolbar buttons, position indicator, and preloading
+
+---
+
 _Last Updated: December 5, 2025_  
-_Current Phase: 3.1 - Zoom & Pan System (COMPLETED ✅)_  
-_Next Milestone: Phase 3.2 - Image Navigation_
+_Current Phase: 3.2 - Image Navigation (COMPLETED ✅)_  
+_Next Milestone: Phase 3.3 - Full-Screen & Presentation_

@@ -1,17 +1,20 @@
 <script lang="ts">
 	import { getFileService } from '$lib/stores/fileService.svelte';
 	import { getZoomState } from '$lib/stores/zoomStore.svelte';
+	import { getNavigationStore } from '$lib/stores/navigationStore.svelte';
 	import { logger } from '$lib/utils/logger';
 	import { 
 		FolderOpen, Save, Printer, FolderTree,
 		Undo, Redo, MousePointer, Copy, Clipboard, Scissors, Crop,
 		RotateCcw, RotateCw,
 		ZoomIn, ZoomOut, Maximize, Square,
+		ChevronLeft, ChevronRight,
 		Minus, WindowSquare, X
 	} from '$lib/icons';
 
 	const fileService = getFileService();
 	const zoomState = getZoomState();
+	const navStore = getNavigationStore();
 
 	async function handleOpenImage() {
 		logger.debug("Toolbar open image button clicked", "TOOLBAR");
@@ -48,6 +51,23 @@
 	function handleActualSize() {
 		logger.debug("Actual size (100%) clicked", "TOOLBAR");
 		zoomState.requestActualSize();
+	}
+
+	// Navigation controls
+	async function handlePrevImage() {
+		logger.debug("Previous image clicked", "TOOLBAR");
+		const prevPath = navStore.goPrev();
+		if (prevPath) {
+			await fileService.openFileByPath(prevPath, true); // Skip folder scan
+		}
+	}
+
+	async function handleNextImage() {
+		logger.debug("Next image clicked", "TOOLBAR");
+		const nextPath = navStore.goNext();
+		if (nextPath) {
+			await fileService.openFileByPath(nextPath, true); // Skip folder scan
+		}
 	}
 
 	// Window controls
@@ -309,6 +329,28 @@
 			title="Actual Size (100%)"
 		>
 			<Square class={iconClass} />
+		</button>
+
+		<!-- Separator -->
+		<div class="w-px h-5 bg-brand-subtle mx-2"></div>
+
+		<!-- Navigation Controls Group -->
+		<button 
+			class={buttonClass}
+			onclick={handlePrevImage}
+			disabled={!navStore.canGoPrev}
+			title="Previous Image (←)"
+		>
+			<ChevronLeft class={iconClass} />
+		</button>
+
+		<button 
+			class={buttonClass}
+			onclick={handleNextImage}
+			disabled={!navStore.canGoNext}
+			title="Next Image (→)"
+		>
+			<ChevronRight class={iconClass} />
 		</button>
 	</div>
 

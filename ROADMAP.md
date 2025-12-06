@@ -10,7 +10,7 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 
 **Phase 1: COMPLETED ✅ | Phase 2: COMPLETED ✅ | Phase 3: IN PROGRESS 🚀**
 
-**Latest Achievement**: Polished zoom system with smooth animated transitions for all toolbar controls, trackpad scroll for panning, and pinch/Cmd+scroll for zoom-to-cursor
+**Latest Achievement**: Image navigation system with folder scanning, prev/next buttons, keyboard shortcuts, position indicator, and adjacent image preloading
 
 ---
 
@@ -188,13 +188,15 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 - [x] Smooth eased animations (ease-out cubic, 250ms duration)
 - [x] Command-based toolbar communication for animated transitions
 
-### 3.2 Image Navigation
+### 3.2 Image Navigation (COMPLETED ✅)
 
-- [ ] Previous/Next image navigation in folder
-- [ ] Arrow key keyboard navigation
-- [ ] Thumbnail strip for quick navigation
-- [ ] Jump to first/last image
-- [ ] Keyboard shortcuts system (Ctrl+O, Space, etc.)
+- [x] Previous/Next image navigation in folder
+- [x] Arrow key keyboard navigation (Left/Right arrows)
+- [x] Jump to first/last image (Home/End keys)
+- [x] Navigation position indicator in status bar ("3 / 25")
+- [x] Adjacent image preloading for instant navigation
+- [x] Folder scanning with alphabetical sorting
+- [ ] Thumbnail strip for quick navigation (deferred to Phase 4)
 
 ### 3.3 Full-Screen & Presentation
 
@@ -445,25 +447,25 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 
 ## 🚀 Next Steps
 
-### **Current Status**: Phase 3.1 Complete ✅ - Zoom & Pan System with Smooth Animations
+### **Current Status**: Phase 3.2 Complete ✅ - Image Navigation Implemented
 
-**Last Achievement**: Polished zoom system with smooth animated transitions, trackpad scroll for panning, pinch/Cmd+scroll for zoom-to-cursor
+**Last Achievement**: Image navigation with folder scanning, keyboard shortcuts (arrows, Home/End), position indicator, and preloading
 
-### **Immediate Next Task (3.2)**: Image Navigation
+### **Immediate Next Task (3.3)**: Full-Screen & Presentation
 
-**Goal**: Navigate between images in a folder
+**Goal**: Add full-screen viewing and slideshow modes
 
 **Steps**:
 
-1. Implement folder scanning for sibling images
-2. Add previous/next navigation buttons to toolbar
-3. Add arrow key keyboard navigation
-4. Jump to first/last image functionality
+1. Implement full-screen toggle (F11 or button)
+2. Add slideshow mode with configurable timing
+3. Presentation controls (play/pause/stop)
+4. Exit full-screen with ESC key
 
-### **This Week's Target**: Complete Phase 3.2 (Image Navigation)
+### **This Week's Target**: Complete Phase 3.3 (Full-Screen & Presentation)
 
 **Estimated Time**: 2-3 hours  
-**Outcome**: Seamless navigation between images in a folder
+**Outcome**: Professional presentation and slideshow capabilities
 
 ### **Next Sprint Goal**: Complete Phase 3 (Advanced Viewing & Navigation)
 
@@ -472,4 +474,4 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 ---
 
 _Last Updated: December 5, 2025_  
-_Current Phase: Phase 3 - Advanced Viewing & Navigation (3.1 Complete) 🚀_
+_Current Phase: Phase 3 - Advanced Viewing & Navigation (3.1, 3.2 Complete) 🚀_

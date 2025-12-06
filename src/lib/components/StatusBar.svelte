@@ -3,12 +3,14 @@
 	import { getMouseCoordinates } from '$lib/stores/mouseCoordinates.svelte';
 	import { getImageMetadata } from '$lib/stores/imageMetadata.svelte';
 	import { getZoomState } from '$lib/stores/zoomStore.svelte';
+	import { getNavigationStore } from '$lib/stores/navigationStore.svelte';
 	import { CheckCircle, XCircle, Loader2 } from '$lib/icons';
 
 	const fileService = getFileService();
 	const mouseCoords = getMouseCoordinates();
 	const imageMetadata = getImageMetadata();
 	const zoomState = getZoomState();
+	const navStore = getNavigationStore();
 
 	function formatCoordinates(): string {
 		if (!mouseCoords.isOverImage) return "—";
@@ -42,8 +44,9 @@
 		{/if}
 	</div>
 
-	<!-- Center: Status -->
-	<div class="absolute left-1/2 transform -translate-x-1/2 flex items-center justify-center overflow-hidden">
+	<!-- Center: Status & Navigation Position -->
+	<div class="absolute left-1/2 transform -translate-x-1/2 flex items-center justify-center gap-3 overflow-hidden">
+		<!-- Status indicator -->
 		<span class="flex items-center gap-1">
 			{#if fileService.isLoading}
 				<Loader2 class="w-3 h-3 animate-spin text-brand-primary" />
@@ -59,6 +62,12 @@
 				<span class="text-brand-muted text-xs">Idle</span>
 			{/if}
 		</span>
+
+		<!-- Navigation position (when images in folder) -->
+		{#if navStore.hasImages && navStore.positionText}
+			<span class="text-brand-muted/40">•</span>
+			<span class="font-mono text-brand-white text-xs">{navStore.positionText}</span>
+		{/if}
 	</div>
 
 	<!-- Right: Zoom & Mouse Coordinates -->

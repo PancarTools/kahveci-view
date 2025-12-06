@@ -31,6 +31,26 @@
 					"path": "$DOCUMENT/**/*"
 				}
 			]
+		},
+		{
+			"identifier": "fs:allow-read-dir",
+			"allow": [
+				{
+					"path": "$HOME/**/*"
+				},
+				{
+					"path": "$DESKTOP/**/*"
+				},
+				{
+					"path": "$DOWNLOAD/**/*"
+				},
+				{
+					"path": "$PICTURE/**/*"
+				},
+				{
+					"path": "$DOCUMENT/**/*"
+				}
+			]
 		}
 	]
 }

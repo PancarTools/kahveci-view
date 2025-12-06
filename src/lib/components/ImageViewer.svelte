@@ -3,6 +3,7 @@
 	import { getMouseCoordinates } from '$lib/stores/mouseCoordinates.svelte';
 	import { getImageMetadata } from '$lib/stores/imageMetadata.svelte';
 	import { getZoomState } from '$lib/stores/zoomStore.svelte';
+	import { getNavigationStore } from '$lib/stores/navigationStore.svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import { invoke } from '@tauri-apps/api/core';
 	import { XCircle } from '$lib/icons';
@@ -11,6 +12,7 @@
 	const mouseCoords = getMouseCoordinates();
 	const imageMetadata = getImageMetadata();
 	const zoomState = getZoomState();
+	const navStore = getNavigationStore();
 
 	async function logTauri(message: string, level: "info" | "warn" | "error" | "debug" = "info") {
 		try {
@@ -43,6 +45,20 @@
 	let animationFrameId: number | null = null;
 	let isAnimating = $state(false);
 	const ANIMATION_DURATION = 250; // ms
+
+	// === CONFIGURABLE TRANSITION SETTINGS ===
+	// Fade duration between images (in ms)
+	const IMAGE_FADE_DURATION = 200; // Adjust this to control fade speed (150-400ms recommended)
+	
+	// Loading indicator delay (only show spinner if loading takes longer than this)
+	const LOADING_INDICATOR_DELAY = 500; // ms
+	
+	// Loading indicator state
+	let showLoadingIndicator = $state(false);
+	let loadingTimerId: ReturnType<typeof setTimeout> | null = null;
+	
+	// Track last loaded image source to prevent duplicate loads
+	let lastLoadedSource: string | null = null;
 
 	// Easing function (ease-out cubic for smooth deceleration)
 	function easeOutCubic(t: number): number {
@@ -262,10 +278,19 @@
 		// Update shared image metadata store
 		imageMetadata.setDimensions(img.naturalWidth, img.naturalHeight);
 
+		// Get fresh container dimensions (important for cached images during navigation)
+		let containerW = canvasWidth;
+		let containerH = canvasHeight;
+		if (imageContainer) {
+			const rect = imageContainer.getBoundingClientRect();
+			containerW = Math.floor(rect.width) || canvasWidth;
+			containerH = Math.floor(rect.height) || canvasHeight;
+		}
+
 		// Update zoom state with image and container dimensions
 		zoomState.setDimensions(
 			{ width: img.naturalWidth, height: img.naturalHeight },
-			{ width: canvasWidth, height: canvasHeight }
+			{ width: containerW, height: containerH }
 		);
 
 		// Set initial zoom to fit window
@@ -420,16 +445,21 @@
 			imageNaturalHeight = 0;
 			currentImage = null;
 			isPanning = false;
+			lastLoadedSource = null; // Clear to allow new image to load
+			stopLoadingTimer(); // Clear any pending loading indicator
 
-			// Reset shared stores
+			// Reset image metadata only (zoom state will be set up by handleImageLoad)
 			imageMetadata.reset();
-			zoomState.reset();
+			// Note: Don't call zoomState.reset() here - it clears container dimensions
+			// and causes issues with cached image navigation. handleImageLoad will set up zoom properly.
 		} else {
 			console.log('[ImageViewer] File cleared');
 			logTauri("[ImageViewer] Current file cleared", "info");
 
+			lastLoadedSource = null;
+			stopLoadingTimer();
 			imageMetadata.reset();
-			zoomState.reset();
+			zoomState.reset(); // Only reset zoom fully when file is cleared
 		}
 	});
 
@@ -451,20 +481,74 @@
 		}
 	});
 
+	// Start loading indicator timer
+	function startLoadingTimer() {
+		// Clear any existing timer
+		if (loadingTimerId !== null) {
+			clearTimeout(loadingTimerId);
+		}
+		showLoadingIndicator = false;
+		
+		// Only show loading indicator if loading takes longer than threshold
+		loadingTimerId = setTimeout(() => {
+			if (!imageLoaded && !imageError) {
+				showLoadingIndicator = true;
+			}
+		}, LOADING_INDICATOR_DELAY);
+	}
+
+	// Stop loading indicator timer
+	function stopLoadingTimer() {
+		if (loadingTimerId !== null) {
+			clearTimeout(loadingTimerId);
+			loadingTimerId = null;
+		}
+		showLoadingIndicator = false;
+	}
+
 	// Load and render image when source changes
 	$effect(() => {
-		if (imageSource && canvasElement) {
+		const source = imageSource;
+		const file = fileService.currentFile;
+		const canvas = canvasElement;
+		
+		if (source && canvas && file) {
+			// Skip if already loaded this exact source
+			if (lastLoadedSource === source && imageLoaded) {
+				console.log('[ImageViewer] Skipping duplicate load for:', source);
+				return;
+			}
+			
 			(async () => {
 				try {
 					imageLoaded = false;
 					imageError = false;
 
-					const img = await loadImage(imageSource);
-					handleImageLoad(img);
+					// Check if image is already cached (instant load)
+					const cachedImg = navStore.getCachedImage(file.path);
+					
+					if (cachedImg) {
+						console.log('[ImageViewer] Using cached image - instant load!');
+						lastLoadedSource = source;
+						handleImageLoad(cachedImg);
+					} else {
+						// Not cached, need to load
+						// Only show loading indicator for manual loads (not navigation)
+						if (!fileService.isNavigating) {
+							startLoadingTimer();
+						}
+						
+						const img = await loadImage(source);
+						stopLoadingTimer();
+						lastLoadedSource = source;
+						handleImageLoad(img);
+					}
 				} catch (error) {
 					console.error('[ImageViewer] Failed to load image:', error);
+					stopLoadingTimer();
 					imageError = true;
 					imageLoaded = false;
+					lastLoadedSource = null;
 				}
 			})();
 		}
@@ -656,7 +740,8 @@
 			       flex flex-col 
 			       relative w-full h-full"
 		>
-			{#if fileService.isLoading}
+			{#if fileService.isLoading && !fileService.isNavigating}
+				<!-- Only show full-screen loader for manual loads, not navigation -->
 				<div
 					class="flex-1 
 					       flex flex-col items-center justify-center 
@@ -704,18 +789,20 @@
 					<canvas
 						bind:this={canvasElement}
 						class="w-full h-full
-						       opacity-0 transition-opacity duration-300 ease-in-out"
+						       opacity-0 ease-in-out"
 						class:opacity-100={imageLoaded}
-						style="cursor: {cursorStyle()};"
+						style="cursor: {cursorStyle()}; transition: opacity {IMAGE_FADE_DURATION}ms ease-in-out;"
 						aria-label={fileService.currentFile?.name || 'Image'}
 					></canvas>
 
-					{#if !imageLoaded}
+					<!-- Loading indicator (only shows after LOADING_INDICATOR_DELAY) -->
+					{#if showLoadingIndicator}
 						<div
 							class="absolute top-1/2 left-1/2 
 							       transform -translate-x-1/2 -translate-y-1/2 
 							       flex flex-col items-center 
-							       gap-2"
+							       gap-2
+							       opacity-0 animate-fade-in"
 						>
 							<div
 								class="w-8 h-8 
@@ -723,6 +810,7 @@
 								       rounded-full 
 								       animate-spin"
 							></div>
+							<p class="text-sm text-text/60">Loading...</p>
 						</div>
 					{/if}
 				</div>
