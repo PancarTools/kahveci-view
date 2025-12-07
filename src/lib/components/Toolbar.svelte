@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { getFileService } from '$lib/stores/fileService.svelte';
-	import { getZoomState } from '$lib/stores/zoomStore.svelte';
+	import { getViewerControls } from '$lib/stores/viewerControls.svelte';
 	import { getNavigationStore } from '$lib/stores/navigationStore.svelte';
 	import { logger } from '$lib/utils/logger';
 	import { 
@@ -13,7 +13,7 @@
 	} from '$lib/icons';
 
 	const fileService = getFileService();
-	const zoomState = getZoomState();
+	const viewerControls = getViewerControls();
 	const navStore = getNavigationStore();
 
 	async function handleOpenImage() {
@@ -35,22 +35,22 @@
 	function handleRotateLeft() { logger.debug("Rotate left clicked (mock)", "TOOLBAR"); }
 	function handleRotateRight() { logger.debug("Rotate right clicked (mock)", "TOOLBAR"); }
 
-	// Zoom controls (use request methods for animated transitions)
+	// Zoom controls
 	function handleZoomIn() {
 		logger.debug("Zoom in clicked", "TOOLBAR");
-		zoomState.requestZoomIn();
+		viewerControls.zoomIn();
 	}
 	function handleZoomOut() {
 		logger.debug("Zoom out clicked", "TOOLBAR");
-		zoomState.requestZoomOut();
+		viewerControls.zoomOut();
 	}
 	function handleFitToWindow() {
 		logger.debug("Fit to window clicked", "TOOLBAR");
-		zoomState.requestFitToWindow();
+		viewerControls.fitToWindow();
 	}
 	function handleActualSize() {
 		logger.debug("Actual size (100%) clicked", "TOOLBAR");
-		zoomState.requestActualSize();
+		viewerControls.actualSize();
 	}
 
 	// Navigation controls
@@ -298,7 +298,7 @@
 		<button 
 			class={buttonClass}
 			onclick={handleZoomOut}
-			disabled={!fileService.currentFile || !zoomState.canZoomOut}
+			disabled={!fileService.currentFile}
 			title="Zoom Out"
 		>
 			<ZoomOut class={iconClass} />
@@ -307,7 +307,7 @@
 		<button 
 			class={buttonClass}
 			onclick={handleZoomIn}
-			disabled={!fileService.currentFile || !zoomState.canZoomIn}
+			disabled={!fileService.currentFile}
 			title="Zoom In"
 		>
 			<ZoomIn class={iconClass} />

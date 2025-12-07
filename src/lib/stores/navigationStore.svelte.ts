@@ -211,6 +211,8 @@ class NavigationStore {
 		try {
 			const url = convertFileSrc(path);
 			const img = new Image();
+			// Required for WebGL texture usage
+			img.crossOrigin = "anonymous";
 
 			img.onload = () => {
 				imageCache.set(path, img);
