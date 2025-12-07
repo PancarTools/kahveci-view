@@ -10,7 +10,7 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 
 **Phase 1: COMPLETED ✅ | Phase 2: COMPLETED ✅ | Phase 3: IN PROGRESS 🚀**
 
-**Latest Achievement**: Image navigation system with folder scanning, prev/next buttons, keyboard shortcuts, position indicator, and adjacent image preloading
+**Latest Achievement**: WebGL rendering migration with GPU acceleration, full feature parity, and seamless integration with toolbar, status bar, and navigation systems
 
 ---
 
@@ -197,6 +197,22 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 - [x] Adjacent image preloading for instant navigation
 - [x] Folder scanning with alphabetical sorting
 - [ ] Thumbnail strip for quick navigation (deferred to Phase 4)
+
+### 3.2.5 WebGL Rendering Migration (COMPLETED ✅)
+
+- [x] Standalone WebGLRenderer class for GPU-accelerated rendering
+- [x] Step-by-step implementation (render → zoom → pan → zoom-to-cursor → animations)
+- [x] Full feature parity with Canvas 2D implementation
+- [x] Pinch-to-zoom with natural sensitivity tuning
+- [x] Zoom-to-cursor behavior (point under cursor stays fixed)
+- [x] Scroll panning and mouse drag panning
+- [x] Smooth animated transitions for toolbar controls
+- [x] Mouse coordinate tracking for status bar display
+- [x] Image caching integration with crossOrigin support
+- [x] Toolbar button re-integration via viewerControls store
+- [x] Status bar zoom percentage display
+- [x] Navigation system compatibility
+- [x] Old Canvas 2D implementation preserved as ImageViewer.old.svelte
 
 ### 3.3 Full-Screen & Presentation
 
@@ -409,6 +425,7 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 - **Styling**: Tailwind CSS v4.1 with custom design system
 - **State Management**: Svelte 5 runes with custom stores
 - **Typography**: Mulish Google Font
+- **Rendering**: WebGL for GPU-accelerated image rendering
 
 ### Backend (Rust)
 
@@ -447,9 +464,9 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 
 ## 🚀 Next Steps
 
-### **Current Status**: Phase 3.2 Complete ✅ - Image Navigation Implemented
+### **Current Status**: Phase 3.2.5 Complete ✅ - WebGL Rendering Migration
 
-**Last Achievement**: Image navigation with folder scanning, keyboard shortcuts (arrows, Home/End), position indicator, and preloading
+**Last Achievement**: WebGL GPU-accelerated rendering with full feature parity, smooth animations, zoom-to-cursor, and complete integration with existing systems
 
 ### **Immediate Next Task (3.3)**: Full-Screen & Presentation
 
@@ -474,4 +491,4 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 ---
 
 _Last Updated: December 5, 2025_  
-_Current Phase: Phase 3 - Advanced Viewing & Navigation (3.1, 3.2 Complete) 🚀_
+_Current Phase: Phase 3 - Advanced Viewing & Navigation (3.1, 3.2, 3.2.5 Complete) 🚀_

@@ -1,4 +1,4 @@
-# Copilot Custom Instructions for pancar-do
+# Copilot Custom Instructions for Kahveci View
 
 - **Always use Svelte 5 runes syntax** for all Svelte components and code examples. Avoid legacy Svelte syntax.
 - use custom svelte classes with svelte 5 runes($state) for state management. example:
@@ -10,15 +10,15 @@ class Counter {
 	count = $state(0);
 
 	increment() {
-		this.count.set(this.count.get() + 1);
+		this.count++;
 	}
 
 	decrement() {
-		this.count.set(this.count.get() - 1);
+		this.count--;
 	}
 
 	reset() {
-		this.count.set(0);
+		this.count = 0;
 	}
 }
 

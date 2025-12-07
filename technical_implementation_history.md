@@ -1605,6 +1605,220 @@ async openFileByPath(filePath: string, skipFolderScan = false) {
 
 ---
 
+### Phase 3.2.5: WebGL Rendering Migration (Completed ✅)
+
+**Date**: December 5, 2025
+
+**Objective**: Migrate from Canvas 2D to WebGL for improved zoom/pan performance while maintaining full feature parity
+
+**Architectural Decisions Made**:
+
+1. **Step-by-Step Implementation Strategy**: Instead of attempting full feature parity immediately, implemented incrementally:
+
+   - Step 1: Basic static image rendering
+   - Step 2: Add zoom (scale uniform)
+   - Step 3: Add pan (offset uniform)
+   - Step 4: Add zoom-to-cursor
+   - Step 5: Add smooth animations
+
+2. **Standalone WebGLRenderer Class**: Created imperative WebGL class separate from Svelte reactivity
+
+   - **Rationale**: WebGL context lifecycle doesn't mix well with Svelte's reactive system
+   - **Pattern**: Pure imperative class, ImageViewer calls methods directly
+   - **Benefits**: No reactive loops, predictable initialization, easier debugging
+
+3. **Preservation of Canvas 2D Implementation**: Kept old implementation as `ImageViewer.old.svelte` for reference
+
+**Technical Implementation**:
+
+**1. WebGLRenderer Class (`src/lib/utils/WebGLRenderer.ts`)**:
+
+```typescript
+class WebGLRenderer {
+	private gl: WebGLRenderingContext | null = null;
+	private program: WebGLProgram | null = null;
+	private texture: WebGLTexture | null = null;
+
+	// Uniforms: u_resolution, u_scale, u_offset, u_imageSize
+	// Attributes: a_position, a_texCoord
+
+	init(canvas: HTMLCanvasElement): boolean;
+	resize(width: number, height: number, dpr: number): void;
+	loadImage(img: HTMLImageElement): boolean;
+	render(scale: number, offsetX: number, offsetY: number): void;
+	destroy(): void;
+}
+```
+
+**Key Features**:
+
+- Vertex shader: Transforms unit quad with scale/offset uniforms
+- Fragment shader: Samples texture with proper coordinate mapping
+- Texture management: Creates/deletes textures, handles non-power-of-2 images
+- Buffer management: Static position and texture coordinate buffers
+
+**2. Shader Implementation**:
+
+```glsl
+// Vertex shader - applies zoom and pan transforms
+attribute vec2 a_position;
+attribute vec2 a_texCoord;
+uniform vec2 u_resolution;
+uniform float u_scale;
+uniform vec2 u_offset;
+uniform vec2 u_imageSize;
+
+void main() {
+    vec2 position = a_position * u_imageSize * u_scale + u_offset;
+    vec2 clipSpace = (position / u_resolution) * 2.0 - 1.0;
+    gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
+    v_texCoord = a_texCoord;
+}
+
+// Fragment shader - samples texture
+precision mediump float;
+uniform sampler2D u_image;
+varying vec2 v_texCoord;
+
+void main() {
+    gl_FragColor = texture2D(u_image, v_texCoord);
+}
+```
+
+**3. ImageViewer Migration**:
+
+**Initialization**:
+
+- Used `onMount` instead of `$effect` to avoid reactive loops
+- WebGL context created once, stored in non-reactive variable
+- Proper cleanup on unmount
+
+**State Management**:
+
+- Zoom/pan state stored in non-reactive variables (`currentScale`, `currentOffsetX`, `currentOffsetY`)
+- Manual re-renders via `render()` function
+- Avoided Svelte reactivity for WebGL operations
+
+**Image Loading**:
+
+- Integrated with `navigationStore` caching system
+- Uses `getCachedImage()` for instant navigation
+- Sets `crossOrigin = "anonymous"` for WebGL texture compatibility
+
+**4. ViewerControls Store (`src/lib/stores/viewerControls.svelte.ts`)**:
+
+New bridge store for Toolbar ↔ ImageViewer communication:
+
+```typescript
+class ViewerControls {
+	// Registered functions from ImageViewer
+	private _fitToWindow: ZoomFunction | null = null;
+	private _actualSize: ZoomFunction | null = null;
+	private _zoomIn: ZoomFunction | null = null;
+	private _zoomOut: ZoomFunction | null = null;
+
+	// Reactive state for UI
+	zoomPercentage = $state(100);
+	isRegistered = $state(false);
+
+	register(fns: {...}): void;
+	unregister(): void;
+	updateZoom(percentage: number): void;
+}
+```
+
+**Benefits**: Clean separation, no component binding complexity, reactive zoom percentage for status bar
+
+**5. Feature Parity Achievements**:
+
+- ✅ **Zoom-to-Cursor**: Pinch/Cmd+scroll zooms to cursor position
+- ✅ **Panning**: Scroll panning and mouse drag panning
+- ✅ **Boundary Clamping**: Image edges can't go past viewport
+- ✅ **Smooth Animations**: 250ms ease-out cubic transitions for toolbar buttons
+- ✅ **Mouse Coordinates**: Real-time coordinate tracking for status bar
+- ✅ **Toolbar Integration**: All zoom buttons work with animations
+- ✅ **Status Bar**: Zoom percentage and coordinates display
+- ✅ **Navigation**: Compatible with image navigation system
+- ✅ **Image Caching**: Uses preloaded images for instant navigation
+
+**6. Critical Fixes**:
+
+**CORS/SecurityError Fix**:
+
+- **Issue**: WebGL requires `crossOrigin = "anonymous"` for textures
+- **Solution**: Added to both `loadImage()` in ImageViewer and `preloadImage()` in navigationStore
+- **Impact**: Preloaded images now work with WebGL rendering
+
+**Reactive Loop Prevention**:
+
+- **Issue**: Initial attempt used `$effect` for WebGL init, causing infinite loops
+- **Solution**: Used `onMount` for one-time initialization, manual state management
+- **Pattern**: Non-reactive variables for WebGL state, reactive only for UI updates
+
+**Mouse Coordinate Tracking**:
+
+- **Issue**: Coordinate display wasn't working after migration
+- **Solution**: Added `updateMouseCoords()` function converting canvas coords to image coords
+- **Implementation**: Accounts for zoom/pan transforms: `imgX = (canvasX - offsetX) / scale`
+
+**Files Created/Modified**:
+
+- `src/lib/utils/WebGLRenderer.ts` (NEW): Standalone WebGL rendering class
+- `src/lib/stores/viewerControls.svelte.ts` (NEW): Toolbar ↔ ImageViewer bridge
+- `src/lib/components/ImageViewer.svelte`: Complete WebGL migration
+- `src/lib/components/ImageViewer.old.svelte` (NEW): Preserved Canvas 2D implementation
+- `src/lib/components/Toolbar.svelte`: Updated to use viewerControls store
+- `src/lib/components/StatusBar.svelte`: Updated to use viewerControls.zoomPercentage
+- `src/lib/stores/navigationStore.svelte.ts`: Added crossOrigin to preloadImage()
+
+**Performance Improvements**:
+
+- **GPU Acceleration**: WebGL utilizes GPU for all rendering operations
+- **Efficient Transforms**: Uniform-based transforms (no CPU-side calculations per frame)
+- **Texture Caching**: Images uploaded once to GPU, reused for all renders
+- **Smooth 60fps**: Maintained smooth animations even with large images
+
+**User Experience**:
+
+- **Before**: Canvas 2D rendering (good, but CPU-bound)
+- **After**: WebGL GPU-accelerated rendering (smoother, especially for zoom/pan)
+- **Feature Parity**: All existing features work identically
+- **Performance**: Noticeably smoother zoom/pan operations, especially on large images
+
+**Validation Results**:
+
+- ✅ WebGL initialization successful
+- ✅ Image rendering working correctly
+- ✅ Zoom-to-cursor behavior matches Canvas 2D
+- ✅ Panning (scroll and drag) working
+- ✅ Smooth animations for toolbar buttons
+- ✅ Mouse coordinates accurate
+- ✅ Toolbar buttons functional
+- ✅ Status bar displays zoom percentage
+- ✅ Navigation system compatible
+- ✅ Image caching working with WebGL
+- ✅ No reactive loops or initialization issues
+
+**Key Learnings**:
+
+- **WebGL + Svelte**: Keep WebGL operations imperative, use Svelte reactivity only for UI state
+- **Initialization**: Use `onMount` for one-time setup, avoid `$effect` for WebGL context
+- **CORS**: Always set `crossOrigin = "anonymous"` for images used in WebGL textures
+- **Step-by-Step**: Incremental implementation prevents overwhelming complexity
+- **State Management**: Non-reactive variables for WebGL state, reactive for UI updates
+- **Bridge Pattern**: Store-based communication cleaner than component binding for complex integrations
+
+**Technical Debt Resolved**:
+
+- Proper WebGL context lifecycle management
+- Eliminated reactive loops with WebGL initialization
+- Fixed CORS issues for cached images
+- Clean separation between WebGL operations and Svelte reactivity
+
+**Deliverable**: ✅ GPU-accelerated WebGL rendering system with full feature parity, smooth animations, and seamless integration with all existing systems
+
+---
+
 _Last Updated: December 5, 2025_  
-_Current Phase: 3.2 - Image Navigation (COMPLETED ✅)_  
+_Current Phase: 3.2.5 - WebGL Rendering Migration (COMPLETED ✅)_  
 _Next Milestone: Phase 3.3 - Full-Screen & Presentation_
