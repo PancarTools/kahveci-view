@@ -99,11 +99,22 @@ Kahveci View is a modern image viewer application built with Tauri 2, Svelte 5, 
    - Reasoning: Separation of concerns with robust error handling
 
 3. **Logging System Enhancement**: Implemented advanced debugging system
+
    - Custom logger utility with debug level controls
    - Runtime debug toggling via localStorage
    - Context-aware logging with performance utilities
    - Both browser console and Tauri backend logging
    - Reasoning: Essential for debugging complex file loading issues
+
+4. **Performance Instrumentation (December 11, 2025)**
+
+   - Added ISO-style timestamps to all Rust-side logs via the `logger` Tauri command for precise ordering in the Tauri console
+   - Integrated cross-layer PERF logging using the shared `logger` utility in:
+     - `FileService` (`openFile`, `openFileByPath`) for end-to-end file open timings
+     - `NavigationStore` (`scanFolder`, `preloadImage`) for folder scan and preload decode timings
+     - `ImageViewer` (`loadAndRender`) for decode, GPU upload, and first-render timings
+     - `WebGLRenderer.loadImage` for detailed texture upload timing (including `texImage2D` duration)
+   - All PERF logs are emitted with clear contexts (e.g. `PERF/FileService`, `PERF/Navigation`, `PERF/ImageViewer`, `PERF/WebGL`) to simplify bottleneck analysis when navigating large images
 
 **Critical Bug Fix**:
 

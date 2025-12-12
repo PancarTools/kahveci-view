@@ -1,11 +1,14 @@
+use chrono::Local;
+
 #[tauri::command]
 fn logger(level: &str, message: &str) {
+    let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S%.3f");
     match level {
-        "info" => println!("[INFO] {}", message),
-        "warn" => println!("[WARN] {}", message),
-        "error" => eprintln!("[ERROR] {}", message),
-        "debug" => println!("[DEBUG] {}", message),
-        _ => println!("[LOG] {}", message),
+        "info" => println!("[{}][INFO] {}", timestamp, message),
+        "warn" => println!("[{}][WARN] {}", timestamp, message),
+        "error" => eprintln!("[{}][ERROR] {}", timestamp, message),
+        "debug" => println!("[{}][DEBUG] {}", timestamp, message),
+        _ => println!("[{}][LOG] {}", timestamp, message),
     }
 }
 

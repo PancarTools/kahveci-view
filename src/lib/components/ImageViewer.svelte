@@ -8,6 +8,7 @@
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import { WebGLRenderer } from '$lib/utils/WebGLRenderer';
 	import { XCircle } from '$lib/icons';
+	import { logger } from '$lib/utils/logger';
 
 	const fileService = getFileService();
 	const viewerControls = getViewerControls();
@@ -358,6 +359,7 @@
 
 		const filePath = fileService.currentFile.path;
 		const source = convertFileSrc(filePath);
+		const tStart = performance.now();
 		
 		// Skip if same source
 		if (source === lastLoadedSource) {
@@ -376,15 +378,47 @@
 			
 			if (img) {
 				console.log('[ImageViewer] Using cached image!');
+				logger.debug('Using cached image', 'PERF/ImageViewer', {
+					path: filePath,
+					name: fileService.currentFile?.name ?? null,
+					size: fileService.currentFile?.size ?? null,
+					formattedSize: fileService.currentFile?.formattedSize ?? null
+				});
 			} else {
+				const tDecodeStart = performance.now();
 				img = await loadImage(source);
 				console.log('[ImageViewer] Image loaded:', img.naturalWidth, 'x', img.naturalHeight);
+				const tDecodeEnd = performance.now();
+				logger.info(
+					`Decoded image in ${(tDecodeEnd - tDecodeStart).toFixed(1)}ms`,
+					'PERF/ImageViewer',
+					{
+						path: filePath,
+						width: img.naturalWidth,
+						height: img.naturalHeight,
+						name: fileService.currentFile?.name ?? null,
+						size: fileService.currentFile?.size ?? null,
+						formattedSize: fileService.currentFile?.formattedSize ?? null
+					}
+				);
 			}
 			
 			if (!renderer || !renderer.isReady()) return;
 			
 			// Upload to GPU
+			const tGpuStart = performance.now();
 			const success = renderer.loadImage(img);
+			const tGpuEnd = performance.now();
+			logger.info(
+				`GPU upload via WebGLRenderer.loadImage took ${(tGpuEnd - tGpuStart).toFixed(1)}ms`,
+				'PERF/ImageViewer',
+				{
+					path: filePath,
+					name: fileService.currentFile?.name ?? null,
+					size: fileService.currentFile?.size ?? null,
+					formattedSize: fileService.currentFile?.formattedSize ?? null
+				}
+			);
 			if (!success) {
 				imageError = true;
 				return;
@@ -407,10 +441,34 @@
 			currentOffsetX = offsetX;
 			currentOffsetY = offsetY;
 
+			const tRenderStart = performance.now();
 			render();
+			const tRenderEnd = performance.now();
+			logger.debug(
+				`First render() took ${(tRenderEnd - tRenderStart).toFixed(1)}ms`,
+				'PERF/ImageViewer',
+				{
+					path: filePath,
+					scale: currentScale,
+					name: fileService.currentFile?.name ?? null,
+					size: fileService.currentFile?.size ?? null,
+					formattedSize: fileService.currentFile?.formattedSize ?? null
+				}
+			);
 			imageLoaded = true;
 			
 			console.log('[ImageViewer] Rendered at scale:', currentScale.toFixed(3));
+			const tEnd = performance.now();
+			logger.info(
+				`loadAndRender completed in ${(tEnd - tStart).toFixed(1)}ms`,
+				'PERF/ImageViewer',
+				{
+					path: filePath,
+					name: fileService.currentFile?.name ?? null,
+					size: fileService.currentFile?.size ?? null,
+					formattedSize: fileService.currentFile?.formattedSize ?? null
+				}
+			);
 		} catch (err) {
 			console.error('[ImageViewer] Failed to load image:', err);
 			imageError = true;

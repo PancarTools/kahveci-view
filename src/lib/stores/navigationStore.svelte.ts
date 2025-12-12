@@ -4,6 +4,7 @@
 import { readDir } from "@tauri-apps/plugin-fs";
 import { invoke } from "@tauri-apps/api/core";
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { logger } from "$lib/utils/logger";
 
 // Supported image formats (must match fileService)
 const SUPPORTED_FORMATS = ["jpg", "jpeg", "png", "gif", "webp", "bmp", "tiff", "tif", "svg"];
@@ -70,11 +71,13 @@ class NavigationStore {
 	 * Scan folder for images when a file is opened
 	 */
 	async scanFolder(filePath: string): Promise<void> {
+		const tStart = performance.now();
+		let folderPath = "";
 		try {
 			this.isScanning = true;
 
 			// Extract folder path from file path
-			const folderPath = this.getFolderPath(filePath);
+			folderPath = this.getFolderPath(filePath);
 			const fileName = this.getFileName(filePath);
 
 			console.log(`[Navigation] Scanning folder: ${folderPath}`);
@@ -121,6 +124,11 @@ class NavigationStore {
 			this.reset();
 		} finally {
 			this.isScanning = false;
+			const tEnd = performance.now();
+			logger.info(`scanFolder completed in ${(tEnd - tStart).toFixed(1)}ms`, "PERF/Navigation", {
+				folder: folderPath,
+				imageCount: this.images.length,
+			});
 		}
 	}
 
@@ -213,10 +221,18 @@ class NavigationStore {
 			const img = new Image();
 			// Required for WebGL texture usage
 			img.crossOrigin = "anonymous";
+			const tStart = performance.now();
 
 			img.onload = () => {
 				imageCache.set(path, img);
 				console.log(`[Navigation] Cached: ${this.getFileName(path)} (${imageCache.size} total)`);
+				const tEnd = performance.now();
+				logger.info(`preloadImage decoded in ${(tEnd - tStart).toFixed(1)}ms`, "PERF/Preload", {
+					path,
+					width: img.naturalWidth,
+					height: img.naturalHeight,
+					name: this.getFileName(path),
+				});
 			};
 
 			img.onerror = () => {

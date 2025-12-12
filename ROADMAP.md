@@ -47,6 +47,7 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 - [x] Comprehensive logging system with runtime controls
 - [x] Debug utilities and performance monitoring
 - [x] Error tracking and user feedback
+- [x] Cross-layer performance instrumentation for file loading, navigation, decoding, and WebGL rendering
 
 **Deliverable**: ✅ Functional image viewer with professional UI
 

@@ -1,3 +1,5 @@
+import { logger } from "$lib/utils/logger";
+
 /**
  * WebGLRenderer - Standalone WebGL image renderer
  *
@@ -155,6 +157,7 @@ export class WebGLRenderer {
 		}
 
 		const gl = this.gl;
+		const tStart = performance.now();
 
 		// Delete old texture if exists
 		if (this.texture) {
@@ -176,13 +179,21 @@ export class WebGLRenderer {
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
+		const tUploadStart = performance.now();
 		// Upload image to GPU
 		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+		const tUploadEnd = performance.now();
 
 		this.imageWidth = img.naturalWidth;
 		this.imageHeight = img.naturalHeight;
 
+		const tEnd = performance.now();
 		console.log(`[WebGLRenderer] Image loaded: ${this.imageWidth}x${this.imageHeight}`);
+		logger.info(
+			`loadImage total ${(tEnd - tStart).toFixed(1)}ms, texImage2D ${(tUploadEnd - tUploadStart).toFixed(1)}ms`,
+			"PERF/WebGL",
+			{ width: this.imageWidth, height: this.imageHeight }
+		);
 		return true;
 	}
 

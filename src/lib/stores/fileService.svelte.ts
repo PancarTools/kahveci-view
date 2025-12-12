@@ -2,6 +2,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { stat } from "@tauri-apps/plugin-fs";
 import { invoke } from "@tauri-apps/api/core";
 import { getNavigationStore } from "./navigationStore.svelte";
+import { logger } from "$lib/utils/logger";
 
 // Supported image formats
 export const SUPPORTED_FORMATS = ["jpg", "jpeg", "png", "gif", "webp", "bmp", "tiff", "tif", "svg"];
@@ -31,6 +32,7 @@ class FileService {
 	isNavigating = $state(false);
 
 	async openFile(): Promise<FileInfo | null> {
+		const tStart = performance.now();
 		try {
 			this.isLoading = true;
 			this.error = null;
@@ -102,6 +104,13 @@ class FileService {
 		} finally {
 			this.isLoading = false;
 			console.log("[FileService] File opening process completed, isLoading set to false");
+			const tEnd = performance.now();
+			logger.info(`openFile completed in ${(tEnd - tStart).toFixed(1)}ms`, "PERF/FileService", {
+				hasFile: this.currentFile !== null,
+				name: this.currentFile?.name ?? null,
+				size: this.currentFile?.size ?? null,
+				formattedSize: this.currentFile?.formattedSize ?? null,
+			});
 		}
 	}
 
@@ -269,6 +278,7 @@ class FileService {
 	}
 
 	async openFileByPath(filePath: string, skipFolderScan = false): Promise<FileInfo | null> {
+		const tStart = performance.now();
 		try {
 			this.isLoading = true;
 			this.error = null;
@@ -319,6 +329,14 @@ class FileService {
 		} finally {
 			this.isLoading = false;
 			this.isNavigating = false;
+			const tEnd = performance.now();
+			logger.info(`openFileByPath completed in ${(tEnd - tStart).toFixed(1)}ms`, "PERF/FileService", {
+				path: filePath,
+				navigation: skipFolderScan,
+				name: this.currentFile?.name ?? null,
+				size: this.currentFile?.size ?? null,
+				formattedSize: this.currentFile?.formattedSize ?? null,
+			});
 		}
 	}
 
