@@ -52,6 +52,8 @@ export class WebGLRenderer {
 	private texture: WebGLTexture | null = null;
 	private positionBuffer: WebGLBuffer | null = null;
 	private texCoordBuffer: WebGLBuffer | null = null;
+	private textureCache: Map<string, WebGLTexture> = new Map();
+	private maxTextureCacheSize = 8;
 
 	// Uniform locations
 	private u_resolution: WebGLUniformLocation | null = null;
@@ -150,7 +152,7 @@ export class WebGLRenderer {
 	/**
 	 * Load an image as a texture
 	 */
-	loadImage(img: HTMLImageElement): boolean {
+	loadImage(img: HTMLImageElement, key: string): boolean {
 		if (!this.gl) {
 			console.error("[WebGLRenderer] Cannot load image - not initialized");
 			return false;
@@ -159,19 +161,32 @@ export class WebGLRenderer {
 		const gl = this.gl;
 		const tStart = performance.now();
 
-		// Delete old texture if exists
-		if (this.texture) {
-			gl.deleteTexture(this.texture);
+		// Try cached texture first
+		const cachedTexture = this.textureCache.get(key);
+		if (cachedTexture) {
+			gl.bindTexture(gl.TEXTURE_2D, cachedTexture);
+			this.texture = cachedTexture;
+			this.imageWidth = img.naturalWidth;
+			this.imageHeight = img.naturalHeight;
+
+			const tEnd = performance.now();
+			logger.info(`loadImage cache hit in ${(tEnd - tStart).toFixed(1)}ms`, "PERF/WebGL", {
+				width: this.imageWidth,
+				height: this.imageHeight,
+				cached: true,
+				cacheSize: this.textureCache.size,
+			});
+			return true;
 		}
 
-		// Create new texture
-		this.texture = gl.createTexture();
-		if (!this.texture) {
+		// No cached texture for this key - upload a new one
+		const texture = gl.createTexture();
+		if (!texture) {
 			console.error("[WebGLRenderer] Failed to create texture");
 			return false;
 		}
 
-		gl.bindTexture(gl.TEXTURE_2D, this.texture);
+		gl.bindTexture(gl.TEXTURE_2D, texture);
 
 		// Set texture parameters for non-power-of-2 images
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -187,12 +202,33 @@ export class WebGLRenderer {
 		this.imageWidth = img.naturalWidth;
 		this.imageHeight = img.naturalHeight;
 
+		// Track as current texture and add to cache
+		this.texture = texture;
+		this.textureCache.set(key, texture);
+
+		// Enforce a simple FIFO cache to avoid unbounded GPU memory growth
+		if (this.textureCache.size > this.maxTextureCacheSize) {
+			const oldestKey = this.textureCache.keys().next().value as string | undefined;
+			if (oldestKey && oldestKey !== key) {
+				const oldestTexture = this.textureCache.get(oldestKey);
+				if (oldestTexture) {
+					gl.deleteTexture(oldestTexture);
+				}
+				this.textureCache.delete(oldestKey);
+			}
+		}
+
 		const tEnd = performance.now();
 		console.log(`[WebGLRenderer] Image loaded: ${this.imageWidth}x${this.imageHeight}`);
 		logger.info(
 			`loadImage total ${(tEnd - tStart).toFixed(1)}ms, texImage2D ${(tUploadEnd - tUploadStart).toFixed(1)}ms`,
 			"PERF/WebGL",
-			{ width: this.imageWidth, height: this.imageHeight }
+			{
+				width: this.imageWidth,
+				height: this.imageHeight,
+				cached: false,
+				cacheSize: this.textureCache.size,
+			}
 		);
 		return true;
 	}
@@ -276,7 +312,10 @@ export class WebGLRenderer {
 
 		const gl = this.gl;
 
-		if (this.texture) gl.deleteTexture(this.texture);
+		for (const texture of this.textureCache.values()) {
+			gl.deleteTexture(texture);
+		}
+		this.textureCache.clear();
 		if (this.positionBuffer) gl.deleteBuffer(this.positionBuffer);
 		if (this.texCoordBuffer) gl.deleteBuffer(this.texCoordBuffer);
 		if (this.program) gl.deleteProgram(this.program);

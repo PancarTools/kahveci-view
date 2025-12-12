@@ -1828,8 +1828,18 @@ class ViewerControls {
 
 **Deliverable**: ✅ GPU-accelerated WebGL rendering system with full feature parity, smooth animations, and seamless integration with all existing systems
 
+### GPU Texture Caching Optimization (December 12, 2025)
+
+- Implemented a path-keyed GPU texture cache in `WebGLRenderer` so that images are uploaded via `texImage2D` only once per image (up to a small cache size).
+- `loadImage(img, key)` now:
+  - Reuses an existing `WebGLTexture` on cache hits (binds texture only, no re-upload).
+  - Uploads a new texture and stores it in a FIFO cache on cache misses.
+  - Emits PERF logs with `cached` and `cacheSize` flags for clear analysis.
+- Added cache-aware cleanup in `destroy()` to delete all cached textures when the WebGL context is torn down.
+- Effect: Navigating back to recently viewed large images no longer pays the full `texImage2D` cost, significantly reducing perceived latency for back/forward navigation.
+
 ---
 
-_Last Updated: December 5, 2025_  
+_Last Updated: December 12, 2025_  
 _Current Phase: 3.2.5 - WebGL Rendering Migration (COMPLETED ✅)_  
 _Next Milestone: Phase 3.3 - Full-Screen & Presentation_

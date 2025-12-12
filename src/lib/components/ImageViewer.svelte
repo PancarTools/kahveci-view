@@ -407,7 +407,7 @@
 			
 			// Upload to GPU
 			const tGpuStart = performance.now();
-			const success = renderer.loadImage(img);
+			const success = renderer.loadImage(img, filePath);
 			const tGpuEnd = performance.now();
 			logger.info(
 				`GPU upload via WebGLRenderer.loadImage took ${(tGpuEnd - tGpuStart).toFixed(1)}ms`,
