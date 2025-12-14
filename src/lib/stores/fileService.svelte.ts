@@ -26,6 +26,7 @@ class FileService {
 	currentFile = $state<FileInfo | null>(null);
 	error = $state<string | null>(null);
 	isLoading = $state(false);
+	private openFileByPathRequestId = 0;
 
 	// Flag to indicate if current load is from navigation (prev/next)
 	// When true, skip showing loading spinner
@@ -278,6 +279,7 @@ class FileService {
 	}
 
 	async openFileByPath(filePath: string, skipFolderScan = false): Promise<FileInfo | null> {
+		const requestId = ++this.openFileByPathRequestId;
 		const tStart = performance.now();
 		try {
 			this.isLoading = true;
@@ -285,7 +287,11 @@ class FileService {
 			// Set navigation flag - skipFolderScan=true means this is a prev/next navigation
 			this.isNavigating = skipFolderScan;
 
-			await logTauri(`[FileService] Loading file by path: ${filePath}${skipFolderScan ? " (navigation)" : ""}`, "info");
+			logger.info("Loading file by path", "FileService", {
+				requestId,
+				path: filePath,
+				navigation: skipFolderScan,
+			});
 			console.log("[FileService] Loading file by path:", filePath, skipFolderScan ? "(navigation)" : "");
 
 			// Validate and extract file info
@@ -303,14 +309,28 @@ class FileService {
 				throw new Error(`Unsupported file type: .${fileInfo.extension}`);
 			}
 
+			if (requestId !== this.openFileByPathRequestId) {
+				logger.warn("Ignoring stale openFileByPath result", "FileService", {
+					requestId,
+					latestRequestId: this.openFileByPathRequestId,
+					requestedPath: filePath,
+					resolvedPath: fileInfo.path,
+					resolvedName: fileInfo.name,
+				});
+				return null;
+			}
+
 			this.currentFile = fileInfo;
 
-			await logTauri(
-				`[FileService] Successfully opened file: ${fileInfo.name} (${fileInfo.extension.toUpperCase()}, ${
-					fileInfo.formattedSize
-				})`,
-				"info"
-			);
+			logger.info("Successfully opened file", "FileService", {
+				requestId,
+				path: fileInfo.path,
+				name: fileInfo.name,
+				extension: fileInfo.extension,
+				size: fileInfo.size,
+				formattedSize: fileInfo.formattedSize,
+				navigation: skipFolderScan,
+			});
 
 			// Trigger folder scan for navigation (unless skipped for navigation)
 			if (!skipFolderScan) {
@@ -323,14 +343,26 @@ class FileService {
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
 			console.error("[FileService] Error loading file by path:", error);
-			await logTauri(`[FileService] Error loading file by path: ${errorMessage}`, "error");
-			this.error = errorMessage;
+			logger.error("Error loading file by path", "FileService", {
+				requestId,
+				path: filePath,
+				navigation: skipFolderScan,
+				errorMessage,
+			});
+			if (requestId === this.openFileByPathRequestId) {
+				this.error = errorMessage;
+			}
 			return null;
 		} finally {
-			this.isLoading = false;
-			this.isNavigating = false;
+			if (requestId === this.openFileByPathRequestId) {
+				this.isLoading = false;
+				this.isNavigating = false;
+			}
 			const tEnd = performance.now();
 			logger.info(`openFileByPath completed in ${(tEnd - tStart).toFixed(1)}ms`, "PERF/FileService", {
+				requestId,
+				latestRequestId: this.openFileByPathRequestId,
+				applied: requestId === this.openFileByPathRequestId,
 				path: filePath,
 				navigation: skipFolderScan,
 				name: this.currentFile?.name ?? null,

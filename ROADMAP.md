@@ -320,6 +320,7 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 - [x] Throttled GPU prewarming queue (one upload at a time) for smoother UI
 - [x] Protected current texture from GPU cache eviction
 - [x] Validation logs for prewarm queue + GPU cache eviction decisions (structured JSON visible in terminal)
+- [x] Navigation openFileByPath requestId guard to prevent out-of-order file opens on rapid navigation
 - [ ] Image caching system for faster loading
 - [ ] Memory management for large files
 - [ ] Background thumbnail generation
