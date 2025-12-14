@@ -23,6 +23,11 @@
 	// State
 	let imageLoaded = $state(false);
 	let imageError = $state(false);
+	let prewarmRunId = 0;
+	let isPrewarming = false;
+	let prewarmQueue: string[] = [];
+	const prewarmQueued = new Set<string>();
+	const prewarmAttempts = new Map<string, number>();
 
 	// WebGL renderer instance (NOT reactive)
 	let renderer: WebGLRenderer | null = null;
@@ -351,15 +356,113 @@
 		}
 	}
 
-	function prewarmNeighborTextures() {
-		if (!renderer || !renderer.isReady()) return;
+	function cancelPrewarm() {
+		const previousRunId = prewarmRunId;
+		const previousQueueSize = prewarmQueue.length;
+		prewarmRunId++;
+		prewarmQueue = [];
+		prewarmQueued.clear();
+		prewarmAttempts.clear();
+		isPrewarming = false;
+		logger.debug('Canceled GPU prewarm queue', 'PERF/PrewarmQueue', {
+			fromRunId: previousRunId,
+			toRunId: prewarmRunId,
+			clearedQueueSize: previousQueueSize
+		});
+	}
 
-		const adjacentPaths = navStore.getAdjacentPaths();
-		for (const path of adjacentPaths) {
-			const img = navStore.getCachedImage(path);
-			if (!img) continue;
-			renderer.prewarmTexture(img, path);
+	function enqueuePrewarm(paths: string[]) {
+		const before = prewarmQueue.length;
+		let added = 0;
+		for (const path of paths) {
+			if (prewarmQueued.has(path)) continue;
+			prewarmQueued.add(path);
+			prewarmQueue.push(path);
+			added++;
 		}
+		const after = prewarmQueue.length;
+		if (added > 0) {
+			logger.debug('Enqueued GPU prewarm items', 'PERF/PrewarmQueue', {
+				runId: prewarmRunId,
+				added,
+				before,
+				after
+			});
+		}
+	}
+
+	function schedulePrewarm() {
+		if (isPrewarming) return;
+		isPrewarming = true;
+		const runId = prewarmRunId;
+		logger.debug('Starting GPU prewarm worker', 'PERF/PrewarmQueue', {
+			runId,
+			queueSize: prewarmQueue.length
+		});
+
+		const step = () => {
+			if (runId !== prewarmRunId) {
+				isPrewarming = false;
+				logger.debug('Stopping GPU prewarm worker (canceled)', 'PERF/PrewarmQueue', {
+					runId,
+					currentRunId: prewarmRunId
+				});
+				return;
+			}
+			if (!renderer || !renderer.isReady()) {
+				isPrewarming = false;
+				logger.debug('Stopping GPU prewarm worker (renderer not ready)', 'PERF/PrewarmQueue', {
+					runId
+				});
+				return;
+			}
+
+			const nextPath = prewarmQueue.shift();
+			if (!nextPath) {
+				isPrewarming = false;
+				logger.debug('GPU prewarm worker drained', 'PERF/PrewarmQueue', {
+					runId
+				});
+				return;
+			}
+			prewarmQueued.delete(nextPath);
+
+			const img = navStore.getCachedImage(nextPath);
+			if (img) {
+				prewarmAttempts.delete(nextPath);
+				logger.debug('GPU prewarm step', 'PERF/PrewarmQueue', {
+					runId,
+					path: nextPath,
+					queueRemaining: prewarmQueue.length
+				});
+				renderer.prewarmTexture(img, nextPath);
+			} else {
+				const attempts = (prewarmAttempts.get(nextPath) ?? 0) + 1;
+				prewarmAttempts.set(nextPath, attempts);
+				// Retry for a short while in case decode is still in progress
+				if (attempts < 60) {
+					if (attempts === 1 || attempts === 10 || attempts === 30) {
+						logger.debug('GPU prewarm retry (image not decoded yet)', 'PERF/PrewarmQueue', {
+							runId,
+							path: nextPath,
+							attempts
+						});
+					}
+					enqueuePrewarm([nextPath]);
+				} else {
+					logger.warn('GPU prewarm giving up (image not decoded)', 'PERF/PrewarmQueue', {
+						runId,
+						path: nextPath,
+						attempts
+					});
+					prewarmAttempts.delete(nextPath);
+				}
+			}
+
+			requestAnimationFrame(step);
+		};
+
+		requestAnimationFrame(step);
 	}
 
 	// Load and render the current image
@@ -367,6 +470,8 @@
 		if (!fileService.currentFile || !renderer || !renderer.isReady()) {
 			return;
 		}
+
+		cancelPrewarm();
 
 		const filePath = fileService.currentFile.path;
 		const source = convertFileSrc(filePath);
@@ -482,7 +587,8 @@
 			);
 			setTimeout(() => {
 				try {
-					prewarmNeighborTextures();
+					enqueuePrewarm(navStore.getAdjacentPaths());
+					schedulePrewarm();
 				} catch (err) {
 					console.warn('[ImageViewer] Failed to prewarm neighbor textures', err);
 				}

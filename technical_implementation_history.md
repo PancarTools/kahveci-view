@@ -1837,10 +1837,14 @@ class ViewerControls {
   - Emits PERF logs with `cached` and `cacheSize` flags for clear analysis.
 - Added cache-aware cleanup in `destroy()` to delete all cached textures when the WebGL context is torn down.
 - Added `NavigationStore.getAdjacentPaths()` and `WebGLRenderer.prewarmTexture()` integration from `ImageViewer` so adjacent images are pre-uploaded to the GPU while viewing the current image.
+- Updated `ImageViewer` to throttle GPU prewarming via a small queue, uploading at most one texture per animation frame and canceling queued work on navigation.
+- Updated `WebGLRenderer` eviction logic to never delete the currently displayed texture.
+- Added explicit log events for prewarm queue lifecycle (enqueue/cancel/step/retry) and GPU cache eviction decisions to validate correctness and throttling from console output.
+- Updated `logTauri()` to append the provided `data` payload (compact JSON) to the Rust-side log message so the terminal output contains the full structured metadata.
 - Effect: Navigating back to or forward into recently viewed large images no longer pays the full `texImage2D` cost on first visible visit, significantly reducing perceived latency for back/forward navigation.
 
 ---
 
-_Last Updated: December 12, 2025_  
+_Last Updated: December 14, 2025_  
 _Current Phase: 3.2.5 - WebGL Rendering Migration (COMPLETED ✅)_  
 _Next Milestone: Phase 3.3 - Full-Screen & Presentation_

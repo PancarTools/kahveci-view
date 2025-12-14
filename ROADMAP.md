@@ -317,6 +317,9 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 
 - [x] GPU texture caching for already-viewed images in WebGL renderer
 - [x] GPU prewarming for adjacent images to hide first upload latency
+- [x] Throttled GPU prewarming queue (one upload at a time) for smoother UI
+- [x] Protected current texture from GPU cache eviction
+- [x] Validation logs for prewarm queue + GPU cache eviction decisions (structured JSON visible in terminal)
 - [ ] Image caching system for faster loading
 - [ ] Memory management for large files
 - [ ] Background thumbnail generation

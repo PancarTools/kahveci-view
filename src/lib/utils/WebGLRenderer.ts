@@ -54,6 +54,7 @@ export class WebGLRenderer {
 	private texCoordBuffer: WebGLBuffer | null = null;
 	private textureCache: Map<string, WebGLTexture> = new Map();
 	private maxTextureCacheSize = 8;
+	private currentTextureKey: string | null = null;
 
 	// Uniform locations
 	private u_resolution: WebGLUniformLocation | null = null;
@@ -166,11 +167,14 @@ export class WebGLRenderer {
 		if (cachedTexture) {
 			gl.bindTexture(gl.TEXTURE_2D, cachedTexture);
 			this.texture = cachedTexture;
+			this.currentTextureKey = key;
 			this.imageWidth = img.naturalWidth;
 			this.imageHeight = img.naturalHeight;
 
 			const tEnd = performance.now();
 			logger.info(`loadImage cache hit in ${(tEnd - tStart).toFixed(1)}ms`, "PERF/WebGL", {
+				key,
+				currentTextureKey: this.currentTextureKey,
 				width: this.imageWidth,
 				height: this.imageHeight,
 				cached: true,
@@ -204,19 +208,11 @@ export class WebGLRenderer {
 
 		// Track as current texture and add to cache
 		this.texture = texture;
+		this.currentTextureKey = key;
 		this.textureCache.set(key, texture);
 
 		// Enforce a simple FIFO cache to avoid unbounded GPU memory growth
-		if (this.textureCache.size > this.maxTextureCacheSize) {
-			const oldestKey = this.textureCache.keys().next().value as string | undefined;
-			if (oldestKey && oldestKey !== key) {
-				const oldestTexture = this.textureCache.get(oldestKey);
-				if (oldestTexture) {
-					gl.deleteTexture(oldestTexture);
-				}
-				this.textureCache.delete(oldestKey);
-			}
-		}
+		this.evictOneTexture(key);
 
 		const tEnd = performance.now();
 		console.log(`[WebGLRenderer] Image loaded: ${this.imageWidth}x${this.imageHeight}`);
@@ -224,6 +220,8 @@ export class WebGLRenderer {
 			`loadImage total ${(tEnd - tStart).toFixed(1)}ms, texImage2D ${(tUploadEnd - tUploadStart).toFixed(1)}ms`,
 			"PERF/WebGL",
 			{
+				key,
+				currentTextureKey: this.currentTextureKey,
 				width: this.imageWidth,
 				height: this.imageHeight,
 				cached: false,
@@ -237,6 +235,11 @@ export class WebGLRenderer {
 		if (!this.webGLCtx) return;
 
 		if (this.textureCache.has(key)) {
+			logger.debug("prewarmTexture skipped (already cached)", "PERF/WebGL", {
+				key,
+				currentTextureKey: this.currentTextureKey,
+				cacheSize: this.textureCache.size,
+			});
 			return;
 		}
 
@@ -261,23 +264,15 @@ export class WebGLRenderer {
 		const tUploadEnd = performance.now();
 
 		this.textureCache.set(key, texture);
-
-		if (this.textureCache.size > this.maxTextureCacheSize) {
-			const oldestKey = this.textureCache.keys().next().value as string | undefined;
-			if (oldestKey && oldestKey !== key) {
-				const oldestTexture = this.textureCache.get(oldestKey);
-				if (oldestTexture) {
-					gl.deleteTexture(oldestTexture);
-				}
-				this.textureCache.delete(oldestKey);
-			}
-		}
+		this.evictOneTexture(key);
 
 		const tEnd = performance.now();
 		logger.info(
 			`prewarmTexture total ${(tEnd - tStart).toFixed(1)}ms, texImage2D ${(tUploadEnd - tUploadStart).toFixed(1)}ms`,
 			"PERF/WebGL",
 			{
+				key,
+				currentTextureKey: this.currentTextureKey,
 				width: img.naturalWidth,
 				height: img.naturalHeight,
 				prewarm: true,
@@ -374,6 +369,7 @@ export class WebGLRenderer {
 		if (this.program) gl.deleteProgram(this.program);
 
 		this.texture = null;
+		this.currentTextureKey = null;
 		this.positionBuffer = null;
 		this.texCoordBuffer = null;
 		this.program = null;
@@ -420,5 +416,45 @@ export class WebGLRenderer {
 		}
 
 		return program;
+	}
+
+	private evictOneTexture(protectedKey: string): void {
+		if (!this.webGLCtx) return;
+		if (this.textureCache.size <= this.maxTextureCacheSize) return;
+
+		const gl = this.webGLCtx;
+		const cacheSizeBefore = this.textureCache.size;
+		let keyToEvict: string | null = null;
+
+		for (const key of this.textureCache.keys()) {
+			if (key === protectedKey) continue;
+			if (this.currentTextureKey && key === this.currentTextureKey) continue;
+			keyToEvict = key;
+			break;
+		}
+
+		if (!keyToEvict) {
+			logger.warn("GPU texture cache over capacity but no evictable key (current/protected only)", "PERF/WebGLCache", {
+				cacheSizeBefore,
+				maxTextureCacheSize: this.maxTextureCacheSize,
+				protectedKey,
+				currentTextureKey: this.currentTextureKey,
+			});
+			return;
+		}
+
+		const texture = this.textureCache.get(keyToEvict);
+		if (texture) {
+			gl.deleteTexture(texture);
+		}
+		this.textureCache.delete(keyToEvict);
+		logger.info("Evicted GPU texture from cache", "PERF/WebGLCache", {
+			cacheSizeBefore,
+			cacheSizeAfter: this.textureCache.size,
+			maxTextureCacheSize: this.maxTextureCacheSize,
+			protectedKey,
+			currentTextureKey: this.currentTextureKey,
+			evictedKey: keyToEvict,
+		});
 	}
 }

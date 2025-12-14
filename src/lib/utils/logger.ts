@@ -43,6 +43,28 @@ export async function logTauri(message: string, level: LogLevel = "info", contex
 	const timestamp = new Date().toISOString();
 	const contextPrefix = context ? `[${context}]` : "";
 	const fullMessage = `${contextPrefix} ${message}`;
+	const dataSuffix = (() => {
+		if (data === undefined || data === null || data === "") return "";
+		try {
+			const seen = new WeakSet<object>();
+			const json = JSON.stringify(data, (_key, value) => {
+				if (value instanceof Error) {
+					return { name: value.name, message: value.message, stack: value.stack };
+				}
+				if (typeof value === "object" && value !== null) {
+					const obj = value as object;
+					if (seen.has(obj)) return "[Circular]";
+					seen.add(obj);
+				}
+				return value;
+			});
+			if (!json) return "";
+			return ` | ${json.length > 2000 ? json.slice(0, 2000) + "…" : json}`;
+		} catch {
+			return ` | ${String(data)}`;
+		}
+	})();
+	const fullMessageWithData = `${fullMessage}${dataSuffix}`;
 
 	// Always log errors and warnings
 	const shouldLog = level === "error" || level === "warn" || isDebugEnabled();
@@ -64,7 +86,7 @@ export async function logTauri(message: string, level: LogLevel = "info", contex
 
 		// Also log to Tauri backend
 		try {
-			await invoke("logger", { level, message: fullMessage });
+			await invoke("logger", { level, message: fullMessageWithData });
 		} catch (error) {
 			// Fallback to console if Tauri logger fails
 			console.error("Failed to log to Tauri backend:", error);
