@@ -137,7 +137,14 @@ class NavigationStore {
 	 */
 	goNext(): string | null {
 		if (!this.canGoNext) return null;
+		const previousIndex = this.currentIndex;
 		this.currentIndex++;
+		logger.info(`navigate NEXT to index ${this.currentIndex + 1}`, "NAV/Move", {
+			direction: "next",
+			fromIndex: previousIndex + 1,
+			toIndex: this.currentIndex + 1,
+			file: this.getFileName(this.currentPath ?? ""),
+		});
 		this.preloadAdjacent();
 		return this.currentPath;
 	}
@@ -147,7 +154,14 @@ class NavigationStore {
 	 */
 	goPrev(): string | null {
 		if (!this.canGoPrev) return null;
+		const previousIndex = this.currentIndex;
 		this.currentIndex--;
+		logger.info(`navigate PREV to index ${this.currentIndex + 1}`, "NAV/Move", {
+			direction: "prev",
+			fromIndex: previousIndex + 1,
+			toIndex: this.currentIndex + 1,
+			file: this.getFileName(this.currentPath ?? ""),
+		});
 		this.preloadAdjacent();
 		return this.currentPath;
 	}
@@ -157,7 +171,14 @@ class NavigationStore {
 	 */
 	goFirst(): string | null {
 		if (!this.hasImages) return null;
+		const previousIndex = this.currentIndex;
 		this.currentIndex = 0;
+		logger.info(`navigate FIRST to index ${this.currentIndex + 1}`, "NAV/Move", {
+			direction: "first",
+			fromIndex: previousIndex + 1,
+			toIndex: this.currentIndex + 1,
+			file: this.getFileName(this.currentPath ?? ""),
+		});
 		this.preloadAdjacent();
 		return this.currentPath;
 	}
@@ -167,7 +188,14 @@ class NavigationStore {
 	 */
 	goLast(): string | null {
 		if (!this.hasImages) return null;
+		const previousIndex = this.currentIndex;
 		this.currentIndex = this.images.length - 1;
+		logger.info(`navigate LAST to index ${this.currentIndex + 1}`, "NAV/Move", {
+			direction: "last",
+			fromIndex: previousIndex + 1,
+			toIndex: this.currentIndex + 1,
+			file: this.getFileName(this.currentPath ?? ""),
+		});
 		this.preloadAdjacent();
 		return this.currentPath;
 	}
@@ -177,7 +205,14 @@ class NavigationStore {
 	 */
 	goToIndex(index: number): string | null {
 		if (index < 0 || index >= this.images.length) return null;
+		const previousIndex = this.currentIndex;
 		this.currentIndex = index;
+		logger.info(`navigate INDEX to ${this.currentIndex + 1}`, "NAV/Move", {
+			direction: "index",
+			fromIndex: previousIndex + 1,
+			toIndex: this.currentIndex + 1,
+			file: this.getFileName(this.currentPath ?? ""),
+		});
 		this.preloadAdjacent();
 		return this.currentPath;
 	}
@@ -205,6 +240,26 @@ class NavigationStore {
 
 		// Clean up old cache entries (keep window of ±3 around current)
 		this.cleanupCache();
+	}
+
+	getAdjacentPaths(): string[] {
+		const paths: string[] = [];
+
+		for (let i = 1; i <= PRELOAD_AHEAD; i++) {
+			const index = this.currentIndex + i;
+			if (index < this.images.length) {
+				paths.push(this.images[index]);
+			}
+		}
+
+		for (let i = 1; i <= PRELOAD_BEHIND; i++) {
+			const index = this.currentIndex - i;
+			if (index >= 0) {
+				paths.push(this.images[index]);
+			}
+		}
+
+		return paths;
 	}
 
 	/**

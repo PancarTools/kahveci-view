@@ -351,6 +351,17 @@
 		}
 	}
 
+	function prewarmNeighborTextures() {
+		if (!renderer || !renderer.isReady()) return;
+
+		const adjacentPaths = navStore.getAdjacentPaths();
+		for (const path of adjacentPaths) {
+			const img = navStore.getCachedImage(path);
+			if (!img) continue;
+			renderer.prewarmTexture(img, path);
+		}
+	}
+
 	// Load and render the current image
 	async function loadAndRender() {
 		if (!fileService.currentFile || !renderer || !renderer.isReady()) {
@@ -469,6 +480,13 @@
 					formattedSize: fileService.currentFile?.formattedSize ?? null
 				}
 			);
+			setTimeout(() => {
+				try {
+					prewarmNeighborTextures();
+				} catch (err) {
+					console.warn('[ImageViewer] Failed to prewarm neighbor textures', err);
+				}
+			}, 50);
 		} catch (err) {
 			console.error('[ImageViewer] Failed to load image:', err);
 			imageError = true;

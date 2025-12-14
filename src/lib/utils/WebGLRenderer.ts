@@ -47,7 +47,7 @@ void main() {
 `;
 
 export class WebGLRenderer {
-	private gl: WebGLRenderingContext | null = null;
+	private webGLCtx: WebGLRenderingContext | null = null;
 	private program: WebGLProgram | null = null;
 	private texture: WebGLTexture | null = null;
 	private positionBuffer: WebGLBuffer | null = null;
@@ -79,19 +79,19 @@ export class WebGLRenderer {
 		console.log("[WebGLRenderer] Initializing...");
 
 		// Get WebGL context
-		this.gl = canvas.getContext("webgl", {
+		this.webGLCtx = canvas.getContext("webgl", {
 			alpha: false,
 			antialias: false,
 			premultipliedAlpha: false,
 			preserveDrawingBuffer: false,
 		});
 
-		if (!this.gl) {
+		if (!this.webGLCtx) {
 			console.error("[WebGLRenderer] Failed to get WebGL context");
 			return false;
 		}
 
-		const gl = this.gl;
+		const gl = this.webGLCtx;
 
 		// Compile shaders
 		const vertexShader = this.compileShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER);
@@ -138,13 +138,13 @@ export class WebGLRenderer {
 	 * Resize the renderer to match canvas size
 	 */
 	resize(width: number, height: number, dpr: number = 1): void {
-		if (!this.gl) return;
+		if (!this.webGLCtx) return;
 
 		this.canvasWidth = width;
 		this.canvasHeight = height;
 
 		// Set viewport to match canvas internal size
-		this.gl.viewport(0, 0, width * dpr, height * dpr);
+		this.webGLCtx.viewport(0, 0, width * dpr, height * dpr);
 
 		console.log(`[WebGLRenderer] Resized to ${width}x${height} (dpr: ${dpr})`);
 	}
@@ -153,12 +153,12 @@ export class WebGLRenderer {
 	 * Load an image as a texture
 	 */
 	loadImage(img: HTMLImageElement, key: string): boolean {
-		if (!this.gl) {
+		if (!this.webGLCtx) {
 			console.error("[WebGLRenderer] Cannot load image - not initialized");
 			return false;
 		}
 
-		const gl = this.gl;
+		const gl = this.webGLCtx;
 		const tStart = performance.now();
 
 		// Try cached texture first
@@ -233,6 +233,59 @@ export class WebGLRenderer {
 		return true;
 	}
 
+	prewarmTexture(img: HTMLImageElement, key: string): void {
+		if (!this.webGLCtx) return;
+
+		if (this.textureCache.has(key)) {
+			return;
+		}
+
+		const gl = this.webGLCtx;
+		const tStart = performance.now();
+
+		const texture = gl.createTexture();
+		if (!texture) {
+			console.error("[WebGLRenderer] Failed to create texture during prewarm");
+			return;
+		}
+
+		gl.bindTexture(gl.TEXTURE_2D, texture);
+
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+		const tUploadStart = performance.now();
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+		const tUploadEnd = performance.now();
+
+		this.textureCache.set(key, texture);
+
+		if (this.textureCache.size > this.maxTextureCacheSize) {
+			const oldestKey = this.textureCache.keys().next().value as string | undefined;
+			if (oldestKey && oldestKey !== key) {
+				const oldestTexture = this.textureCache.get(oldestKey);
+				if (oldestTexture) {
+					gl.deleteTexture(oldestTexture);
+				}
+				this.textureCache.delete(oldestKey);
+			}
+		}
+
+		const tEnd = performance.now();
+		logger.info(
+			`prewarmTexture total ${(tEnd - tStart).toFixed(1)}ms, texImage2D ${(tUploadEnd - tUploadStart).toFixed(1)}ms`,
+			"PERF/WebGL",
+			{
+				width: img.naturalWidth,
+				height: img.naturalHeight,
+				prewarm: true,
+				cacheSize: this.textureCache.size,
+			}
+		);
+	}
+
 	/**
 	 * Render the image
 	 * @param scale - Zoom level (1.0 = 100%)
@@ -240,11 +293,11 @@ export class WebGLRenderer {
 	 * @param offsetY - Vertical offset in pixels
 	 */
 	render(scale: number, offsetX: number, offsetY: number): void {
-		if (!this.gl || !this.program || !this.texture) {
+		if (!this.webGLCtx || !this.program || !this.texture) {
 			return;
 		}
 
-		const gl = this.gl;
+		const gl = this.webGLCtx;
 
 		// Clear with dark background
 		gl.clearColor(0.078, 0.086, 0.094, 1.0); // hsl(220, 8%, 8%)
@@ -294,7 +347,7 @@ export class WebGLRenderer {
 	 * Check if renderer is ready
 	 */
 	isReady(): boolean {
-		return this.isInitialized && this.gl !== null;
+		return this.isInitialized && this.webGLCtx !== null;
 	}
 
 	/**
@@ -308,9 +361,9 @@ export class WebGLRenderer {
 	 * Clean up WebGL resources
 	 */
 	destroy(): void {
-		if (!this.gl) return;
+		if (!this.webGLCtx) return;
 
-		const gl = this.gl;
+		const gl = this.webGLCtx;
 
 		for (const texture of this.textureCache.values()) {
 			gl.deleteTexture(texture);
@@ -324,7 +377,7 @@ export class WebGLRenderer {
 		this.positionBuffer = null;
 		this.texCoordBuffer = null;
 		this.program = null;
-		this.gl = null;
+		this.webGLCtx = null;
 		this.isInitialized = false;
 
 		console.log("[WebGLRenderer] Destroyed");

@@ -316,6 +316,7 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 ### 6.1 Performance Optimization
 
 - [x] GPU texture caching for already-viewed images in WebGL renderer
+- [x] GPU prewarming for adjacent images to hide first upload latency
 - [ ] Image caching system for faster loading
 - [ ] Memory management for large files
 - [ ] Background thumbnail generation

@@ -1836,7 +1836,8 @@ class ViewerControls {
   - Uploads a new texture and stores it in a FIFO cache on cache misses.
   - Emits PERF logs with `cached` and `cacheSize` flags for clear analysis.
 - Added cache-aware cleanup in `destroy()` to delete all cached textures when the WebGL context is torn down.
-- Effect: Navigating back to recently viewed large images no longer pays the full `texImage2D` cost, significantly reducing perceived latency for back/forward navigation.
+- Added `NavigationStore.getAdjacentPaths()` and `WebGLRenderer.prewarmTexture()` integration from `ImageViewer` so adjacent images are pre-uploaded to the GPU while viewing the current image.
+- Effect: Navigating back to or forward into recently viewed large images no longer pays the full `texImage2D` cost on first visible visit, significantly reducing perceived latency for back/forward navigation.
 
 ---
 
