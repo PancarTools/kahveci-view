@@ -1842,6 +1842,9 @@ class ViewerControls {
 - Added explicit log events for prewarm queue lifecycle (enqueue/cancel/step/retry) and GPU cache eviction decisions to validate correctness and throttling from console output.
 - Updated `logTauri()` to append the provided `data` payload (compact JSON) to the Rust-side log message so the terminal output contains the full structured metadata.
 - Added `openFileByPath` request sequencing so only the latest navigation request can update `currentFile`, clear loading flags, and emit success logs (prevents out-of-order async completion from causing mismatched file logs/rendering).
+- Switched decoded image caching from `HTMLImageElement` to `ImageBitmap` and decode preloads to a display-sized target (viewer width × DPR × factor), reducing both decode overhead and `texImage2D` upload cost.
+- Tuned the display-sized decode target multiplier down to `1.25` and added in-flight bitmap decode de-duplication so preloading and foreground loads join the same decode instead of doing redundant work.
+- Updated `WebGLRenderer` to accept `TexImageSource` so it can upload `ImageBitmap` directly.
 - Effect: Navigating back to or forward into recently viewed large images no longer pays the full `texImage2D` cost on first visible visit, significantly reducing perceived latency for back/forward navigation.
 
 ---

@@ -59,6 +59,16 @@
 		return 1 - Math.pow(1 - t, 3);
 	}
 
+	function getDecodeResizeWidth(): number {
+		if (!containerElement) {
+			const dpr = window.devicePixelRatio || 1;
+			return Math.min(Math.ceil(Math.max(window.innerWidth, window.innerHeight) * dpr * 1.25), 4096);
+		}
+		const rect = containerElement.getBoundingClientRect();
+		const dpr = window.devicePixelRatio || 1;
+		return Math.min(Math.ceil(Math.max(rect.width, rect.height) * dpr * 1.25), 4096);
+	}
+
 	// Animate to target zoom/position
 	function animateTo(targetScale: number, targetOffsetX: number, targetOffsetY: number) {
 		// Cancel any existing animation
@@ -344,6 +354,7 @@
 		canvasElement.style.height = rect.height + 'px';
 		
 		renderer.resize(rect.width, rect.height, dpr);
+		navStore.setDecodeResizeWidth(Math.min(Math.ceil(Math.max(rect.width, rect.height) * dpr * 1.25), 4096));
 		
 		// Re-center image at current scale
 		if (renderer.hasImage()) {
@@ -427,15 +438,15 @@
 			}
 			prewarmQueued.delete(nextPath);
 
-			const img = navStore.getCachedImage(nextPath);
-			if (img) {
+			const bitmap = navStore.getCachedBitmap(nextPath);
+			if (bitmap) {
 				prewarmAttempts.delete(nextPath);
 				logger.debug('GPU prewarm step', 'PERF/PrewarmQueue', {
 					runId,
 					path: nextPath,
 					queueRemaining: prewarmQueue.length
 				});
-				renderer.prewarmTexture(img, nextPath);
+				renderer.prewarmTexture(bitmap, nextPath);
 			} else {
 				const attempts = (prewarmAttempts.get(nextPath) ?? 0) + 1;
 				prewarmAttempts.set(nextPath, attempts);
@@ -476,6 +487,7 @@
 		const filePath = fileService.currentFile.path;
 		const source = convertFileSrc(filePath);
 		const tStart = performance.now();
+		const resizeWidth = getDecodeResizeWidth();
 		
 		// Skip if same source
 		if (source === lastLoadedSource) {
@@ -490,9 +502,9 @@
 
 		try {
 			// Check cache first
-			let img = navStore.getCachedImage(filePath);
+			let bitmap = navStore.getCachedBitmap(filePath);
 			
-			if (img) {
+			if (bitmap) {
 				console.log('[ImageViewer] Using cached image!');
 				logger.debug('Using cached image', 'PERF/ImageViewer', {
 					path: filePath,
@@ -502,16 +514,20 @@
 				});
 			} else {
 				const tDecodeStart = performance.now();
-				img = await loadImage(source);
-				console.log('[ImageViewer] Image loaded:', img.naturalWidth, 'x', img.naturalHeight);
+				bitmap = await navStore.getOrDecodeBitmap(filePath, resizeWidth);
+				if (!bitmap) {
+					throw new Error('Failed to decode image bitmap');
+				}
+				console.log('[ImageViewer] Image loaded:', bitmap.width, 'x', bitmap.height);
 				const tDecodeEnd = performance.now();
 				logger.info(
 					`Decoded image in ${(tDecodeEnd - tDecodeStart).toFixed(1)}ms`,
 					'PERF/ImageViewer',
 					{
 						path: filePath,
-						width: img.naturalWidth,
-						height: img.naturalHeight,
+						width: bitmap.width,
+						height: bitmap.height,
+						resizeWidth,
 						name: fileService.currentFile?.name ?? null,
 						size: fileService.currentFile?.size ?? null,
 						formattedSize: fileService.currentFile?.formattedSize ?? null
@@ -520,10 +536,11 @@
 			}
 			
 			if (!renderer || !renderer.isReady()) return;
+			if (!bitmap) return;
 			
 			// Upload to GPU
 			const tGpuStart = performance.now();
-			const success = renderer.loadImage(img, filePath);
+			const success = renderer.loadImage(bitmap, filePath);
 			const tGpuEnd = performance.now();
 			logger.info(
 				`GPU upload via WebGLRenderer.loadImage took ${(tGpuEnd - tGpuStart).toFixed(1)}ms`,
@@ -541,13 +558,13 @@
 			}
 
 			// Update image metadata for status bar
-			imageMetadata.setDimensions(img.naturalWidth, img.naturalHeight);
+			imageMetadata.setDimensions(bitmap.width, bitmap.height);
 
 			// Calculate fit-to-window and set initial zoom state
 			const { width: containerW, height: containerH } = renderer.getCanvasSize();
 			const { scale, offsetX, offsetY } = calculateFitToWindow(
-				img.naturalWidth,
-				img.naturalHeight,
+				bitmap.width,
+				bitmap.height,
 				containerW,
 				containerH
 			);
@@ -638,6 +655,7 @@
 			canvasElement.style.height = rect.height + 'px';
 			
 			renderer.resize(rect.width, rect.height, dpr);
+			navStore.setDecodeResizeWidth(Math.min(Math.ceil(Math.max(rect.width, rect.height) * dpr * 1.25), 4096));
 			
 			console.log('[ImageViewer] WebGL ready');
 

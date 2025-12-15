@@ -153,7 +153,7 @@ export class WebGLRenderer {
 	/**
 	 * Load an image as a texture
 	 */
-	loadImage(img: HTMLImageElement, key: string): boolean {
+	loadImage(img: TexImageSource, key: string): boolean {
 		if (!this.webGLCtx) {
 			console.error("[WebGLRenderer] Cannot load image - not initialized");
 			return false;
@@ -168,8 +168,9 @@ export class WebGLRenderer {
 			gl.bindTexture(gl.TEXTURE_2D, cachedTexture);
 			this.texture = cachedTexture;
 			this.currentTextureKey = key;
-			this.imageWidth = img.naturalWidth;
-			this.imageHeight = img.naturalHeight;
+			const size = this.getSourceSize(img);
+			this.imageWidth = size?.width ?? this.imageWidth;
+			this.imageHeight = size?.height ?? this.imageHeight;
 
 			const tEnd = performance.now();
 			logger.info(`loadImage cache hit in ${(tEnd - tStart).toFixed(1)}ms`, "PERF/WebGL", {
@@ -203,8 +204,9 @@ export class WebGLRenderer {
 		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
 		const tUploadEnd = performance.now();
 
-		this.imageWidth = img.naturalWidth;
-		this.imageHeight = img.naturalHeight;
+		const size = this.getSourceSize(img);
+		this.imageWidth = size?.width ?? this.imageWidth;
+		this.imageHeight = size?.height ?? this.imageHeight;
 
 		// Track as current texture and add to cache
 		this.texture = texture;
@@ -231,7 +233,7 @@ export class WebGLRenderer {
 		return true;
 	}
 
-	prewarmTexture(img: HTMLImageElement, key: string): void {
+	prewarmTexture(img: TexImageSource, key: string): void {
 		if (!this.webGLCtx) return;
 
 		if (this.textureCache.has(key)) {
@@ -267,14 +269,15 @@ export class WebGLRenderer {
 		this.evictOneTexture(key);
 
 		const tEnd = performance.now();
+		const size = this.getSourceSize(img);
 		logger.info(
 			`prewarmTexture total ${(tEnd - tStart).toFixed(1)}ms, texImage2D ${(tUploadEnd - tUploadStart).toFixed(1)}ms`,
 			"PERF/WebGL",
 			{
 				key,
 				currentTextureKey: this.currentTextureKey,
-				width: img.naturalWidth,
-				height: img.naturalHeight,
+				width: size?.width ?? null,
+				height: size?.height ?? null,
 				prewarm: true,
 				cacheSize: this.textureCache.size,
 			}
@@ -456,5 +459,19 @@ export class WebGLRenderer {
 			currentTextureKey: this.currentTextureKey,
 			evictedKey: keyToEvict,
 		});
+	}
+
+	private getSourceSize(source: TexImageSource): { width: number; height: number } | null {
+		const anySource = source as any;
+		if (typeof anySource?.naturalWidth === "number" && typeof anySource?.naturalHeight === "number") {
+			return { width: anySource.naturalWidth, height: anySource.naturalHeight };
+		}
+		if (typeof anySource?.videoWidth === "number" && typeof anySource?.videoHeight === "number") {
+			return { width: anySource.videoWidth, height: anySource.videoHeight };
+		}
+		if (typeof anySource?.width === "number" && typeof anySource?.height === "number") {
+			return { width: anySource.width, height: anySource.height };
+		}
+		return null;
 	}
 }

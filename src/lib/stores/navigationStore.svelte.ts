@@ -14,8 +14,15 @@ const SUPPORTED_FORMATS = ["jpg", "jpeg", "png", "gif", "webp", "bmp", "tiff", "
 const PRELOAD_AHEAD = 2; // Preload next 2 images
 const PRELOAD_BEHIND = 1; // Preload previous 1 image
 
+const DECODE_SCALE_FACTOR = 1.25;
+const DECODE_MAX_WIDTH = 4096;
+
 // Cache for preloaded images (keeps them in memory)
-const imageCache = new Map<string, HTMLImageElement>();
+type CachedBitmapEntry = { bitmap: ImageBitmap; resizeWidth: number };
+const imageCache = new Map<string, CachedBitmapEntry>();
+type InFlightDecodeEntry = { resizeWidth: number; token: number; promise: Promise<void> };
+const inFlightDecodes = new Map<string, InFlightDecodeEntry>();
+let inFlightTokenCounter = 0;
 
 async function logTauri(message: string, level: "info" | "warn" | "error" | "debug" = "info") {
 	try {
@@ -37,6 +44,7 @@ class NavigationStore {
 
 	// Loading state for folder scan
 	isScanning = $state(false);
+	private decodeResizeWidth = 0;
 
 	// Derived values
 	get totalImages(): number {
@@ -226,7 +234,7 @@ class NavigationStore {
 		for (let i = 1; i <= PRELOAD_AHEAD; i++) {
 			const index = this.currentIndex + i;
 			if (index < this.images.length) {
-				this.preloadImage(this.images[index]);
+				void this.preloadImage(this.images[index]);
 			}
 		}
 
@@ -234,12 +242,16 @@ class NavigationStore {
 		for (let i = 1; i <= PRELOAD_BEHIND; i++) {
 			const index = this.currentIndex - i;
 			if (index >= 0) {
-				this.preloadImage(this.images[index]);
+				void this.preloadImage(this.images[index]);
 			}
 		}
 
 		// Clean up old cache entries (keep window of ±3 around current)
 		this.cleanupCache();
+	}
+
+	setDecodeResizeWidth(resizeWidth: number): void {
+		this.decodeResizeWidth = resizeWidth;
 	}
 
 	getAdjacentPaths(): string[] {
@@ -265,38 +277,50 @@ class NavigationStore {
 	/**
 	 * Preload a single image into memory cache
 	 */
-	private preloadImage(path: string): void {
+	private async preloadImage(path: string): Promise<void> {
 		// Skip if already cached
-		if (imageCache.has(path)) {
-			return;
-		}
+		const resizeWidth = this.getEffectiveDecodeResizeWidth();
+		const existing = imageCache.get(path);
+		if (existing && existing.resizeWidth >= resizeWidth) return;
 
 		try {
-			const url = convertFileSrc(path);
-			const img = new Image();
-			// Required for WebGL texture usage
-			img.crossOrigin = "anonymous";
 			const tStart = performance.now();
-
-			img.onload = () => {
-				imageCache.set(path, img);
-				console.log(`[Navigation] Cached: ${this.getFileName(path)} (${imageCache.size} total)`);
-				const tEnd = performance.now();
-				logger.info(`preloadImage decoded in ${(tEnd - tStart).toFixed(1)}ms`, "PERF/Preload", {
-					path,
-					width: img.naturalWidth,
-					height: img.naturalHeight,
-					name: this.getFileName(path),
-				});
-			};
-
-			img.onerror = () => {
-				console.warn(`[Navigation] Failed to preload: ${this.getFileName(path)}`);
-			};
-
-			img.src = url;
+			const bitmap = await this.getOrDecodeBitmap(path, resizeWidth);
+			if (!bitmap) return;
+			console.log(`[Navigation] Cached: ${this.getFileName(path)} (${imageCache.size} total)`);
+			const tEnd = performance.now();
+			logger.info(`preloadBitmap decoded in ${(tEnd - tStart).toFixed(1)}ms`, "PERF/Preload", {
+				path,
+				width: bitmap.width,
+				height: bitmap.height,
+				resizeWidth,
+				name: this.getFileName(path),
+			});
 		} catch (error) {
 			console.warn(`[Navigation] Failed to preload: ${path}`, error);
+		}
+	}
+
+	private getEffectiveDecodeResizeWidth(): number {
+		if (this.decodeResizeWidth > 0) return this.decodeResizeWidth;
+		const dpr = globalThis.devicePixelRatio || 1;
+		return Math.min(
+			Math.ceil(Math.max(globalThis.innerWidth || 0, globalThis.innerHeight || 0) * dpr * DECODE_SCALE_FACTOR),
+			DECODE_MAX_WIDTH
+		);
+	}
+
+	private async decodeBitmap(path: string, resizeWidth: number): Promise<ImageBitmap> {
+		const url = convertFileSrc(path);
+		const res = await fetch(url);
+		if (!res.ok) {
+			throw new Error(`Failed to fetch image for bitmap decode (status ${res.status}, resizeWidth ${resizeWidth})`);
+		}
+		const blob = await res.blob();
+		try {
+			return await createImageBitmap(blob, { resizeWidth, resizeQuality: "high" });
+		} catch {
+			return await createImageBitmap(blob);
 		}
 	}
 
@@ -319,6 +343,7 @@ class NavigationStore {
 		// Remove entries not in keep range
 		for (const path of imageCache.keys()) {
 			if (!pathsToKeep.has(path)) {
+				imageCache.get(path)?.bitmap.close();
 				imageCache.delete(path);
 				console.log(`[Navigation] Evicted from cache: ${this.getFileName(path)}`);
 			}
@@ -335,8 +360,58 @@ class NavigationStore {
 	/**
 	 * Get cached image (if available)
 	 */
-	getCachedImage(path: string): HTMLImageElement | null {
-		return imageCache.get(path) ?? null;
+	getCachedBitmap(path: string): ImageBitmap | null {
+		return imageCache.get(path)?.bitmap ?? null;
+	}
+
+	async getOrDecodeBitmap(path: string, resizeWidth?: number): Promise<ImageBitmap | null> {
+		const effectiveResizeWidth = resizeWidth ?? this.getEffectiveDecodeResizeWidth();
+		const existing = imageCache.get(path);
+		if (existing && existing.resizeWidth >= effectiveResizeWidth) {
+			return existing.bitmap;
+		}
+
+		const inFlight = inFlightDecodes.get(path);
+		if (inFlight && inFlight.resizeWidth >= effectiveResizeWidth) {
+			try {
+				await inFlight.promise;
+				return imageCache.get(path)?.bitmap ?? null;
+			} catch {
+				return null;
+			}
+		}
+
+		try {
+			const token = ++inFlightTokenCounter;
+			const promise = (async () => {
+				const bitmap = await this.decodeBitmap(path, effectiveResizeWidth);
+				const current = imageCache.get(path);
+				if (current && current.resizeWidth >= effectiveResizeWidth) {
+					bitmap.close();
+					return;
+				}
+				if (current) {
+					current.bitmap.close();
+				}
+				imageCache.set(path, { bitmap, resizeWidth: effectiveResizeWidth });
+			})();
+
+			inFlightDecodes.set(path, {
+				resizeWidth: effectiveResizeWidth,
+				token,
+				promise: promise.finally(() => {
+					const cur = inFlightDecodes.get(path);
+					if (cur?.token === token) {
+						inFlightDecodes.delete(path);
+					}
+				}),
+			});
+
+			await inFlightDecodes.get(path)!.promise;
+			return imageCache.get(path)?.bitmap ?? null;
+		} catch {
+			return null;
+		}
 	}
 
 	/**
@@ -348,7 +423,9 @@ class NavigationStore {
 		this.currentFolder = null;
 		this.isScanning = false;
 
-		// Clear the image cache
+		for (const entry of imageCache.values()) {
+			entry.bitmap.close();
+		}
 		imageCache.clear();
 		console.log("[Navigation] Cache cleared");
 	}
