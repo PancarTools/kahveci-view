@@ -163,7 +163,9 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 
 ### 2.5.3 Development & Testing Features
 
-- [x] Auto-load test image functionality for rapid development
+- [x] Auto-load test image functionality for rapid development (optional via env var)
+- [x] Env-controlled preview mode tuning (off/aggressive/progressive) for large-image navigation performance
+- [x] Explicit progressive preview stage1/stage2 logging to validate upgrade scheduling and completion
 - [x] Comprehensive canvas rendering logging and debugging
 - [x] Real-time canvas resize handling with window changes
 
@@ -322,6 +324,9 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 - [x] Validation logs for prewarm queue + GPU cache eviction decisions (structured JSON visible in terminal)
 - [x] Navigation openFileByPath requestId guard to prevent out-of-order file opens on rapid navigation
 - [x] ImageBitmap-based decode cache (async) + display-size downscaled textures for faster first visits
+- [x] Full-res texture upgrade auto-triggered after first render (debounced/idle) with status bar loading indicator (keep downscaled image visible until ready; status bar metadata/coords stay in original pixel space)
+- [x] Skip full-res upgrade for small/medium images when preview decode is already full resolution (avoid upscaling on preview decode)
+- [x] Reduce post-navigation jank by deferring GPU prewarm and auto full-res upgrade further into idle time
 - [ ] Image caching system for faster loading
 - [ ] Memory management for large files
 - [ ] Background thumbnail generation

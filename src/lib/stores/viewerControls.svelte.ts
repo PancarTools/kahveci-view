@@ -19,6 +19,8 @@ class ViewerControls {
 	// Reactive state for UI
 	zoomPercentage = $state(100);
 	isRegistered = $state(false);
+	fullResLoading = $state(false);
+	fullResProgress = $state<number | null>(null);
 
 	// Register functions (called by ImageViewer on mount)
 	register(fns: {
@@ -45,11 +47,28 @@ class ViewerControls {
 		this._getZoomPercentage = null;
 		this.isRegistered = false;
 		this.zoomPercentage = 100;
+		this.fullResLoading = false;
+		this.fullResProgress = null;
 	}
 
 	// Update zoom percentage (called by ImageViewer after zoom changes)
 	updateZoom(percentage: number) {
 		this.zoomPercentage = percentage;
+	}
+
+	beginFullResLoad() {
+		this.fullResLoading = true;
+		this.fullResProgress = 0;
+	}
+
+	updateFullResProgress(progress: number) {
+		this.fullResLoading = true;
+		this.fullResProgress = Math.max(0, Math.min(100, Math.round(progress)));
+	}
+
+	endFullResLoad() {
+		this.fullResLoading = false;
+		this.fullResProgress = null;
 	}
 
 	// Public methods (called by Toolbar)

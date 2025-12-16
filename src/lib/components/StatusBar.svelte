@@ -73,10 +73,48 @@
 	<!-- Right: Zoom & Mouse Coordinates -->
 	<div class="flex items-center gap-3 flex-none">
 		{#if fileService.currentFile && imageMetadata.isLoaded}
-			<span class="font-mono text-brand-primary text-xs font-medium min-w-[40px] text-right">{viewerControls.zoomPercentage}%</span>
+			<span class="font-mono text-brand-primary text-xs font-medium min-w-10 text-right">{viewerControls.zoomPercentage}%</span>
 			<span class="text-brand-muted/40">•</span>
+			{#if viewerControls.fullResLoading}
+				<span class="text-brand-primary text-xs font-medium whitespace-nowrap">
+					Loading full resolution<span class="loading-dots" aria-hidden="true"><span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></span>
+				</span>
+				<span class="text-brand-muted/40">•</span>
+			{/if}
 		{/if}
 		<span class="text-brand-muted/60 text-xs">XY:</span>
 		<span class="font-mono text-brand-white text-xs min-w-[50px]">{formatCoordinates()}</span>
 	</div>
 </div>
+
+<style>
+	.loading-dots {
+		display: inline-block;
+		width: 1.25em;
+	}
+
+	.loading-dots .dot {
+		display: inline-block;
+		opacity: 0.2;
+		animation: loadingDots 1.2s infinite;
+	}
+
+	.loading-dots .dot:nth-child(2) {
+		animation-delay: 0.2s;
+	}
+
+	.loading-dots .dot:nth-child(3) {
+		animation-delay: 0.4s;
+	}
+
+	@keyframes loadingDots {
+		0%,
+		80%,
+		100% {
+			opacity: 0.2;
+		}
+		40% {
+			opacity: 1;
+		}
+	}
+</style>

@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { dev } from '$app/environment';
+	import { env } from '$env/dynamic/public';
 	import Toolbar from '$lib/components/Toolbar.svelte';
 	import StatusBar from '$lib/components/StatusBar.svelte';
 	import DefaultState from '$lib/components/DefaultState.svelte';
@@ -15,10 +17,12 @@
 		setupGlobalErrorHandling();
 		
 		// Auto-load test image after 500ms (development only)
-		setTimeout(async () => {
-			const testImagePath = "/Users/utkutekalmaz/Downloads/0968goz_001115/Export JPG 16Base/aaa.JPG";
-			await fileService.openFileByPath(testImagePath);
-		}, 500);
+		const testImagePath = env.PUBLIC_DEV_AUTOLOAD_IMAGE_PATH;
+		if (dev && testImagePath && testImagePath.trim().length > 0) {
+			setTimeout(async () => {
+				await fileService.openFileByPath(testImagePath);
+			}, 500);
+		}
 	});
 
 	// Keyboard navigation handler

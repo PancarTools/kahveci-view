@@ -1844,11 +1844,19 @@ class ViewerControls {
 - Added `openFileByPath` request sequencing so only the latest navigation request can update `currentFile`, clear loading flags, and emit success logs (prevents out-of-order async completion from causing mismatched file logs/rendering).
 - Switched decoded image caching from `HTMLImageElement` to `ImageBitmap` and decode preloads to a display-sized target (viewer width × DPR × factor), reducing both decode overhead and `texImage2D` upload cost.
 - Tuned the display-sized decode target multiplier down to `1.25` and added in-flight bitmap decode de-duplication so preloading and foreground loads join the same decode instead of doing redundant work.
+- Added a full-resolution texture upgrade path with a status bar "Loading full resolution..." indicator (animated dots) while the full-res fetch/decode/upload runs in the background.
+- Status bar image metadata and mouse coordinates now avoid displaying downscaled preview dimensions; coordinates are mapped to the original pixel space once full-res dimensions are known.
+- The preview decode path now avoids upscaling small/medium images (clamps resizeWidth to original width) and skips scheduling full-res upgrade when the initial decode already matches full resolution.
+- Deferred GPU prewarm scheduling and auto full-res upgrades further into idle time and aligned the preload decode target with the viewer decode target to reduce post-navigation stutter.
+- The upgrade is auto-scheduled after first render (debounced/idle) and is also triggered by zoom button actions.
 - Updated `WebGLRenderer` to accept `TexImageSource` so it can upload `ImageBitmap` directly.
+- Parametrized the development auto-load test image path via `PUBLIC_DEV_AUTOLOAD_IMAGE_PATH` and skip auto-load when unset.
+- Added env-controlled preview modes (`PUBLIC_PREVIEW_MODE`: off/aggressive/progressive) that reduce initial GPU upload cost for large images by capping decode size (aggressive) or decoding a small stage-1 preview and upgrading to a larger stage-2 preview during idle time (progressive).
+- Added explicit log events for progressive preview mode so terminal output clearly shows stage-1 sizing, stage-2 scheduling/start, and stage-2 completion.
 - Effect: Navigating back to or forward into recently viewed large images no longer pays the full `texImage2D` cost on first visible visit, significantly reducing perceived latency for back/forward navigation.
 
 ---
 
-_Last Updated: December 14, 2025_  
+_Last Updated: December 17, 2025_  
 _Current Phase: 3.2.5 - WebGL Rendering Migration (COMPLETED ✅)_  
 _Next Milestone: Phase 3.3 - Full-Screen & Presentation_

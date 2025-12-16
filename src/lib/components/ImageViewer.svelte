@@ -5,6 +5,7 @@
 	import { getImageMetadata } from '$lib/stores/imageMetadata.svelte';
 	import { getMouseCoordinates } from '$lib/stores/mouseCoordinates.svelte';
 	import { getNavigationStore } from '$lib/stores/navigationStore.svelte';
+	import { env } from '$env/dynamic/public';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import { WebGLRenderer } from '$lib/utils/WebGLRenderer';
 	import { XCircle } from '$lib/icons';
@@ -34,6 +35,17 @@
 
 	// Track last loaded source to avoid duplicate loads
 	let lastLoadedSource: string | null = null;
+	let fullResUpgradeToken = 0;
+	let fullResLoadedForPath: string | null = null;
+	let fullResInFlightForPath: string | null = null;
+	let fullResAbortController: AbortController | null = null;
+	let fullResUpgradeTimer: number | null = null;
+	let fullResUpgradeIdleHandle: number | null = null;
+	let previewUpgradeToken = 0;
+	let previewUpgradedForPath: string | null = null;
+	let previewUpgradeInFlightForPath: string | null = null;
+	let previewUpgradeTimer: number | null = null;
+	let previewUpgradeIdleHandle: number | null = null;
 
 	// Zoom/Pan state (NOT reactive - we control re-renders manually)
 	let currentScale = 1;
@@ -59,14 +71,76 @@
 		return 1 - Math.pow(1 - t, 3);
 	}
 
+	type PreviewMode = "off" | "aggressive" | "progressive";
+
+	function parseEnvInt(value: string | undefined, fallback: number): number {
+		if (!value) return fallback;
+		const n = Number.parseInt(value, 10);
+		return Number.isFinite(n) ? n : fallback;
+	}
+
+	function parseEnvFloat(value: string | undefined, fallback: number): number {
+		if (!value) return fallback;
+		const n = Number.parseFloat(value);
+		return Number.isFinite(n) ? n : fallback;
+	}
+
+	function normalizePreviewMode(value: string | undefined): PreviewMode {
+		const v = (value ?? "off").toLowerCase();
+		if (v === "aggressive" || v === "progressive" || v === "off") return v;
+		return "off";
+	}
+
+	const previewMode: PreviewMode = normalizePreviewMode(env.PUBLIC_PREVIEW_MODE);
+	const previewLargeImageBytes = parseEnvInt(env.PUBLIC_PREVIEW_LARGE_IMAGE_BYTES, 12_000_000);
+	const previewLargeImageMegapixels = parseEnvFloat(env.PUBLIC_PREVIEW_LARGE_IMAGE_MEGAPIXELS, 10);
+	const previewAggressiveMaxWidth = parseEnvInt(env.PUBLIC_PREVIEW_AGGRESSIVE_MAX_WIDTH, 2048);
+	const previewProgressiveStage1Width = parseEnvInt(env.PUBLIC_PREVIEW_PROGRESSIVE_STAGE1_WIDTH, 1024);
+	const previewProgressiveStage2Width = parseEnvInt(env.PUBLIC_PREVIEW_PROGRESSIVE_STAGE2_WIDTH, 2048);
+
+	function isLargeImageForPreview(fileSize: number | null, originalDims: { width: number; height: number } | null): boolean {
+		if (typeof fileSize === "number" && fileSize >= previewLargeImageBytes) return true;
+		if (originalDims) {
+			const mp = (originalDims.width * originalDims.height) / 1_000_000;
+			if (mp >= previewLargeImageMegapixels) return true;
+		}
+		return false;
+	}
+
+	function applyPreviewModeToResizeWidth(baseResizeWidth: number, mode: PreviewMode): number {
+		if (mode === "aggressive") return Math.min(baseResizeWidth, previewAggressiveMaxWidth);
+		if (mode === "progressive") return Math.min(baseResizeWidth, previewProgressiveStage1Width);
+		return baseResizeWidth;
+	}
+
+	function applyProgressiveStage2ToResizeWidth(baseResizeWidth: number): number {
+		return Math.min(baseResizeWidth, previewProgressiveStage2Width);
+	}
+
 	function getDecodeResizeWidth(): number {
 		if (!containerElement) {
 			const dpr = window.devicePixelRatio || 1;
-			return Math.min(Math.ceil(Math.max(window.innerWidth, window.innerHeight) * dpr * 1.25), 4096);
+			return Math.min(Math.ceil(Math.max(window.innerWidth, window.innerHeight) * dpr), 4096);
 		}
 		const rect = containerElement.getBoundingClientRect();
 		const dpr = window.devicePixelRatio || 1;
-		return Math.min(Math.ceil(Math.max(rect.width, rect.height) * dpr * 1.25), 4096);
+		return Math.min(Math.ceil(Math.max(rect.width, rect.height) * dpr), 4096);
+	}
+
+	function cancelPreviewUpgrade(): void {
+		if (previewUpgradeTimer !== null) {
+			window.clearTimeout(previewUpgradeTimer);
+			previewUpgradeTimer = null;
+		}
+		if (previewUpgradeIdleHandle !== null) {
+			const anyWindow = window as any;
+			if (typeof anyWindow.cancelIdleCallback === "function") {
+				anyWindow.cancelIdleCallback(previewUpgradeIdleHandle);
+			}
+			previewUpgradeIdleHandle = null;
+		}
+		previewUpgradeToken++;
+		previewUpgradeInFlightForPath = null;
 	}
 
 	// Animate to target zoom/position
@@ -111,6 +185,7 @@
 	// Exported zoom control functions (for toolbar)
 	export function fitToWindow() {
 		if (!renderer || !renderer.hasImage()) return;
+		void requestFullResUpgrade();
 		
 		const { width: imgW, height: imgH } = renderer.getImageSize();
 		const { width: containerW, height: containerH } = renderer.getCanvasSize();
@@ -121,6 +196,7 @@
 
 	export function actualSize() {
 		if (!renderer || !renderer.hasImage()) return;
+		void requestFullResUpgrade();
 		
 		const { width: imgW, height: imgH } = renderer.getImageSize();
 		const { width: containerW, height: containerH } = renderer.getCanvasSize();
@@ -135,6 +211,7 @@
 
 	export function zoomIn() {
 		if (!renderer || !renderer.hasImage()) return;
+		void requestFullResUpgrade();
 		
 		const { width: imgW, height: imgH } = renderer.getImageSize();
 		const { width: containerW, height: containerH } = renderer.getCanvasSize();
@@ -152,6 +229,7 @@
 
 	export function zoomOut() {
 		if (!renderer || !renderer.hasImage()) return;
+		void requestFullResUpgrade();
 		
 		const { width: imgW, height: imgH } = renderer.getImageSize();
 		const { width: containerW, height: containerH } = renderer.getCanvasSize();
@@ -202,6 +280,253 @@
 		if (!renderer || !renderer.hasImage()) return;
 		renderer.render(currentScale, currentOffsetX, currentOffsetY);
 		viewerControls.updateZoom(Math.round(currentScale * 100));
+	}
+
+	function cancelFullResUpgrade(): void {
+		if (fullResUpgradeTimer !== null) {
+			window.clearTimeout(fullResUpgradeTimer);
+			fullResUpgradeTimer = null;
+		}
+		if (fullResUpgradeIdleHandle !== null) {
+			const anyWindow = window as any;
+			if (typeof anyWindow.cancelIdleCallback === "function") {
+				anyWindow.cancelIdleCallback(fullResUpgradeIdleHandle);
+			}
+			fullResUpgradeIdleHandle = null;
+		}
+		fullResUpgradeToken++;
+		fullResInFlightForPath = null;
+		if (fullResAbortController) {
+			fullResAbortController.abort();
+			fullResAbortController = null;
+		}
+		viewerControls.endFullResLoad();
+	}
+
+	async function requestProgressivePreviewUpgrade(resizeWidth: number): Promise<void> {
+		if (!fileService.currentFile || !renderer || !renderer.isReady()) return;
+		const filePath = fileService.currentFile.path;
+
+		if (previewMode !== "progressive") return;
+		if (previewUpgradedForPath === filePath) return;
+		if (previewUpgradeInFlightForPath === filePath) return;
+
+		const token = ++previewUpgradeToken;
+		previewUpgradeInFlightForPath = filePath;
+		logger.debug("Starting progressive stage2 preview upgrade", "PERF/ImageViewer", {
+			path: filePath,
+			resizeWidth
+		});
+
+		try {
+			const tStart = performance.now();
+			const bitmap = await navStore.getOrDecodeBitmap(filePath, resizeWidth);
+			if (!bitmap) return;
+			if (token !== previewUpgradeToken) return;
+			if (!renderer || !renderer.isReady()) return;
+			if (fileService.currentFile?.path !== filePath) return;
+
+			const success = renderer.loadImage(bitmap, filePath, { forceUpload: true, preserveImageSize: true });
+			render();
+			const tEnd = performance.now();
+			if (success) {
+				previewUpgradedForPath = filePath;
+				logger.info(
+					`Preview texture upgrade completed in ${(tEnd - tStart).toFixed(1)}ms`,
+					"PERF/ImageViewer",
+					{ path: filePath, width: bitmap.width, height: bitmap.height, resizeWidth }
+				);
+			}
+		} finally {
+			if (token === previewUpgradeToken) {
+				previewUpgradeInFlightForPath = null;
+			}
+		}
+	}
+
+	function scheduleProgressivePreviewUpgrade(path: string, resizeWidth: number): void {
+		if (previewMode !== "progressive") return;
+		if (!fileService.currentFile || fileService.currentFile.path !== path) return;
+		if (previewUpgradedForPath === path) return;
+		if (previewUpgradeInFlightForPath === path) return;
+		logger.debug("Queued progressive stage2 preview upgrade", "PERF/ImageViewer", {
+			path,
+			resizeWidth
+		});
+
+		if (previewUpgradeTimer !== null) {
+			window.clearTimeout(previewUpgradeTimer);
+		}
+		if (previewUpgradeIdleHandle !== null) {
+			const anyWindow = window as any;
+			if (typeof anyWindow.cancelIdleCallback === "function") {
+				anyWindow.cancelIdleCallback(previewUpgradeIdleHandle);
+			}
+			previewUpgradeIdleHandle = null;
+		}
+
+		previewUpgradeTimer = window.setTimeout(() => {
+			previewUpgradeTimer = null;
+			if (!fileService.currentFile || fileService.currentFile.path !== path) return;
+
+			const anyWindow = window as any;
+			if (typeof anyWindow.requestIdleCallback === "function") {
+				previewUpgradeIdleHandle = anyWindow.requestIdleCallback(
+					() => {
+						previewUpgradeIdleHandle = null;
+						if (!fileService.currentFile || fileService.currentFile.path !== path) return;
+						void requestProgressivePreviewUpgrade(resizeWidth);
+					},
+					{ timeout: 1200 }
+				);
+			} else {
+				void requestProgressivePreviewUpgrade(resizeWidth);
+			}
+		}, 450);
+	}
+
+	function scheduleAutoFullResUpgrade(path: string): void {
+		if (!fileService.currentFile || fileService.currentFile.path !== path) return;
+		if (fullResLoadedForPath === path) return;
+		if (fullResInFlightForPath === path) return;
+
+		if (fullResUpgradeTimer !== null) {
+			window.clearTimeout(fullResUpgradeTimer);
+		}
+		if (fullResUpgradeIdleHandle !== null) {
+			const anyWindow = window as any;
+			if (typeof anyWindow.cancelIdleCallback === "function") {
+				anyWindow.cancelIdleCallback(fullResUpgradeIdleHandle);
+			}
+			fullResUpgradeIdleHandle = null;
+		}
+
+		fullResUpgradeTimer = window.setTimeout(() => {
+			fullResUpgradeTimer = null;
+			if (!fileService.currentFile || fileService.currentFile.path !== path) return;
+			if (fullResLoadedForPath === path) return;
+			if (fullResInFlightForPath === path) return;
+
+			const anyWindow = window as any;
+			if (typeof anyWindow.requestIdleCallback === "function") {
+				fullResUpgradeIdleHandle = anyWindow.requestIdleCallback(
+					() => {
+						fullResUpgradeIdleHandle = null;
+						if (!fileService.currentFile || fileService.currentFile.path !== path) return;
+						void requestFullResUpgrade();
+					},
+					{ timeout: 2000 }
+				);
+			} else {
+				void requestFullResUpgrade();
+			}
+		}, 1200);
+	}
+
+	async function fetchBlobWithProgress(
+		url: string,
+		onProgress: (loaded: number, total: number | null) => void,
+		signal?: AbortSignal
+	): Promise<{ blob: Blob; total: number | null }> {
+		const res = await fetch(url, signal ? { signal } : undefined);
+		if (!res.ok) {
+			throw new Error(`Failed to fetch image for full-res decode (status ${res.status})`);
+		}
+		const header = res.headers.get("content-length") ?? res.headers.get("Content-Length");
+		const total = header ? Number(header) : null;
+		const blob = await res.blob();
+		onProgress(blob.size, total ?? blob.size);
+		return { blob, total: total ?? blob.size };
+	}
+
+	async function requestFullResUpgrade(): Promise<void> {
+		if (!fileService.currentFile || !renderer || !renderer.isReady()) return;
+		const filePath = fileService.currentFile.path;
+
+		if (fullResLoadedForPath === filePath) return;
+		if (fullResInFlightForPath === filePath) return;
+
+		const token = ++fullResUpgradeToken;
+		if (fullResAbortController) {
+			fullResAbortController.abort();
+		}
+		const abortController = new AbortController();
+		fullResAbortController = abortController;
+		fullResInFlightForPath = filePath;
+		viewerControls.beginFullResLoad();
+		viewerControls.updateFullResProgress(0);
+
+		try {
+			const source = convertFileSrc(filePath);
+			viewerControls.updateFullResProgress(5);
+
+			const { blob, total } = await fetchBlobWithProgress(
+				source,
+				(loaded, totalBytes) => {
+					if (token !== fullResUpgradeToken) return;
+					if (fileService.currentFile?.path !== filePath) return;
+					if (typeof totalBytes === "number" && totalBytes > 0) {
+						viewerControls.updateFullResProgress((loaded / totalBytes) * 60);
+					}
+				},
+				abortController.signal
+			);
+
+			if (token !== fullResUpgradeToken) return;
+			if (fileService.currentFile?.path !== filePath) return;
+			if (!(typeof total === "number" && total > 0)) {
+				viewerControls.updateFullResProgress(40);
+			}
+
+			viewerControls.updateFullResProgress(65);
+			const bitmap = await createImageBitmap(blob);
+			viewerControls.updateFullResProgress(85);
+
+			if (token !== fullResUpgradeToken) {
+				bitmap.close();
+				return;
+			}
+			if (!renderer || !renderer.isReady()) {
+				bitmap.close();
+				return;
+			}
+			if (fileService.currentFile?.path !== filePath) {
+				bitmap.close();
+				return;
+			}
+
+			viewerControls.updateFullResProgress(92);
+			const success = renderer.loadImage(bitmap, filePath, { forceUpload: true, preserveImageSize: true });
+			imageMetadata.setDimensions(bitmap.width, bitmap.height);
+			bitmap.close();
+			render();
+			viewerControls.updateFullResProgress(100);
+
+			if (!success) {
+				throw new Error("Failed to upload full-res texture");
+			}
+
+			fullResLoadedForPath = filePath;
+			logger.info("Full-res texture upgrade completed", "PERF/ImageViewer", {
+				path: filePath,
+				width: imageMetadata.naturalWidth,
+				height: imageMetadata.naturalHeight,
+			});
+		} catch (err) {
+			if (abortController.signal.aborted) {
+				return;
+			}
+			logger.warn("Full-res texture upgrade failed", "PERF/ImageViewer", {
+				path: fileService.currentFile?.path ?? null,
+				error: err instanceof Error ? err.message : String(err),
+			});
+		} finally {
+			if (token === fullResUpgradeToken) {
+				fullResInFlightForPath = null;
+				fullResAbortController = null;
+				viewerControls.endFullResLoad();
+			}
+		}
 	}
 
 	// Clamp offset to keep image edges visible (or centered if smaller than container)
@@ -321,6 +646,10 @@
 	// Track mouse position for coordinate display
 	function updateMouseCoords(event: MouseEvent) {
 		if (!renderer || !renderer.hasImage() || !canvasElement) return;
+		if (!imageMetadata.isLoaded || imageMetadata.naturalWidth === 0 || imageMetadata.naturalHeight === 0) {
+			mouseCoords.setOverImage(false);
+			return;
+		}
 
 		const rect = canvasElement.getBoundingClientRect();
 		const canvasX = event.clientX - rect.left;
@@ -331,10 +660,24 @@
 		const imgY = (canvasY - currentOffsetY) / currentScale;
 
 		const { width: imgW, height: imgH } = renderer.getImageSize();
+		if (imgW <= 0 || imgH <= 0) {
+			mouseCoords.setOverImage(false);
+			return;
+		}
+		const scaleX = imageMetadata.naturalWidth / imgW;
+		const scaleY = imageMetadata.naturalHeight / imgH;
 
 		// Check if within image bounds
 		if (imgX >= 0 && imgX < imgW && imgY >= 0 && imgY < imgH) {
-			mouseCoords.updatePosition(Math.round(imgX), Math.round(imgY));
+			const originalX = Math.min(
+				imageMetadata.naturalWidth - 1,
+				Math.max(0, Math.round(imgX * scaleX))
+			);
+			const originalY = Math.min(
+				imageMetadata.naturalHeight - 1,
+				Math.max(0, Math.round(imgY * scaleY))
+			);
+			mouseCoords.updatePosition(originalX, originalY);
 			mouseCoords.setOverImage(true);
 		} else {
 			mouseCoords.setOverImage(false);
@@ -354,7 +697,8 @@
 		canvasElement.style.height = rect.height + 'px';
 		
 		renderer.resize(rect.width, rect.height, dpr);
-		navStore.setDecodeResizeWidth(Math.min(Math.ceil(Math.max(rect.width, rect.height) * dpr * 1.25), 4096));
+		const baseResizeWidth = Math.min(Math.ceil(Math.max(rect.width, rect.height) * dpr), 4096);
+		navStore.setDecodeResizeWidth(baseResizeWidth);
 		
 		// Re-center image at current scale
 		if (renderer.hasImage()) {
@@ -487,7 +831,33 @@
 		const filePath = fileService.currentFile.path;
 		const source = convertFileSrc(filePath);
 		const tStart = performance.now();
-		const resizeWidth = getDecodeResizeWidth();
+		const cachedOriginalDims = navStore.getOriginalDimensions(filePath);
+		if (cachedOriginalDims) {
+			imageMetadata.setDimensions(cachedOriginalDims.width, cachedOriginalDims.height);
+		}
+		const baseResizeWidth = getDecodeResizeWidth();
+		const isLargeForPreview = isLargeImageForPreview(fileService.currentFile.size ?? null, cachedOriginalDims);
+		const initialResizeWidth =
+			previewMode === "off"
+				? baseResizeWidth
+				: isLargeForPreview
+					? applyPreviewModeToResizeWidth(baseResizeWidth, previewMode)
+					: baseResizeWidth;
+		const resizeWidth = initialResizeWidth;
+		const progressiveStage2Width =
+			previewMode === "progressive" && isLargeForPreview
+				? applyProgressiveStage2ToResizeWidth(baseResizeWidth)
+				: null;
+		if (previewMode === "progressive" && isLargeForPreview) {
+			logger.info("Progressive preview mode active", "PERF/ImageViewer", {
+				path: filePath,
+				baseResizeWidth,
+				stage1ResizeWidth: resizeWidth,
+				stage2ResizeWidth: progressiveStage2Width,
+				fileSize: fileService.currentFile.size ?? null,
+				originalDims: cachedOriginalDims
+			});
+		}
 		
 		// Skip if same source
 		if (source === lastLoadedSource) {
@@ -503,6 +873,7 @@
 		try {
 			// Check cache first
 			let bitmap = navStore.getCachedBitmap(filePath);
+			let originalDims = navStore.getOriginalDimensions(filePath);
 			
 			if (bitmap) {
 				console.log('[ImageViewer] Using cached image!');
@@ -512,11 +883,30 @@
 					size: fileService.currentFile?.size ?? null,
 					formattedSize: fileService.currentFile?.formattedSize ?? null
 				});
+				if (!originalDims) {
+					originalDims = navStore.getOriginalDimensions(filePath);
+					if (originalDims) {
+						imageMetadata.setDimensions(originalDims.width, originalDims.height);
+					}
+				}
+				const effectiveDesiredWidth = originalDims ? Math.min(resizeWidth, originalDims.width) : resizeWidth;
+				if (bitmap.width < effectiveDesiredWidth && !isLargeForPreview) {
+					const upgraded = await navStore.getOrDecodeBitmap(filePath, effectiveDesiredWidth);
+					if (upgraded) {
+						bitmap = upgraded;
+						originalDims = navStore.getOriginalDimensions(filePath) ?? originalDims;
+					}
+				}
 			} else {
+				// Load image
 				const tDecodeStart = performance.now();
 				bitmap = await navStore.getOrDecodeBitmap(filePath, resizeWidth);
 				if (!bitmap) {
 					throw new Error('Failed to decode image bitmap');
+				}
+				originalDims = navStore.getOriginalDimensions(filePath);
+				if (originalDims) {
+					imageMetadata.setDimensions(originalDims.width, originalDims.height);
 				}
 				console.log('[ImageViewer] Image loaded:', bitmap.width, 'x', bitmap.height);
 				const tDecodeEnd = performance.now();
@@ -557,9 +947,6 @@
 				return;
 			}
 
-			// Update image metadata for status bar
-			imageMetadata.setDimensions(bitmap.width, bitmap.height);
-
 			// Calculate fit-to-window and set initial zoom state
 			const { width: containerW, height: containerH } = renderer.getCanvasSize();
 			const { scale, offsetX, offsetY } = calculateFitToWindow(
@@ -589,6 +976,35 @@
 				}
 			);
 			imageLoaded = true;
+			previewUpgradedForPath = null;
+			if (previewMode === "progressive" && isLargeForPreview) {
+				const stage2Width = progressiveStage2Width ?? applyProgressiveStage2ToResizeWidth(baseResizeWidth);
+				if (stage2Width > resizeWidth) {
+					logger.debug("Scheduling progressive stage2 preview upgrade", "PERF/ImageViewer", {
+						path: filePath,
+						stage1ResizeWidth: resizeWidth,
+						stage2ResizeWidth: stage2Width
+					});
+					scheduleProgressivePreviewUpgrade(filePath, stage2Width);
+				} else {
+					logger.debug("Skipping progressive stage2 preview upgrade (already satisfied)", "PERF/ImageViewer", {
+						path: filePath,
+						stage1ResizeWidth: resizeWidth,
+						stage2ResizeWidth: stage2Width
+					});
+					previewUpgradedForPath = filePath;
+				}
+			}
+			if (originalDims && bitmap) {
+				const alreadyFullRes = bitmap.width >= originalDims.width && bitmap.height >= originalDims.height;
+				if (alreadyFullRes) {
+					fullResLoadedForPath = filePath;
+				} else {
+					scheduleAutoFullResUpgrade(filePath);
+				}
+			} else {
+				scheduleAutoFullResUpgrade(filePath);
+			}
 			
 			console.log('[ImageViewer] Rendered at scale:', currentScale.toFixed(3));
 			const tEnd = performance.now();
@@ -602,14 +1018,28 @@
 					formattedSize: fileService.currentFile?.formattedSize ?? null
 				}
 			);
+			const runIdAtSchedule = prewarmRunId;
 			setTimeout(() => {
+				if (runIdAtSchedule !== prewarmRunId) return;
 				try {
-					enqueuePrewarm(navStore.getAdjacentPaths());
-					schedulePrewarm();
+					const anyWindow = window as any;
+					if (typeof anyWindow.requestIdleCallback === "function") {
+						anyWindow.requestIdleCallback(
+							() => {
+								if (runIdAtSchedule !== prewarmRunId) return;
+								enqueuePrewarm(navStore.getAdjacentPaths());
+								schedulePrewarm();
+							},
+							{ timeout: 1200 }
+						);
+					} else {
+						enqueuePrewarm(navStore.getAdjacentPaths());
+						schedulePrewarm();
+					}
 				} catch (err) {
 					console.warn('[ImageViewer] Failed to prewarm neighbor textures', err);
 				}
-			}, 50);
+			}, 250);
 		} catch (err) {
 			console.error('[ImageViewer] Failed to load image:', err);
 			imageError = true;
@@ -655,7 +1085,8 @@
 			canvasElement.style.height = rect.height + 'px';
 			
 			renderer.resize(rect.width, rect.height, dpr);
-			navStore.setDecodeResizeWidth(Math.min(Math.ceil(Math.max(rect.width, rect.height) * dpr * 1.25), 4096));
+			const baseResizeWidth = Math.min(Math.ceil(Math.max(rect.width, rect.height) * dpr), 4096);
+			navStore.setDecodeResizeWidth(baseResizeWidth);
 			
 			console.log('[ImageViewer] WebGL ready');
 
@@ -684,13 +1115,24 @@
 	// Watch for file changes (using $effect but NOT setting reactive state in it)
 	$effect(() => {
 		const file = fileService.currentFile;
-		
+		// Update navigation when file changes
 		if (file) {
+			imageMetadata.reset();
+			mouseCoords.reset();
+			mouseCoords.setOverImage(false);
+			fullResLoadedForPath = null;
+			cancelPreviewUpgrade();
+			cancelFullResUpgrade();
 			// Small delay to ensure renderer is ready after mount
 			setTimeout(() => {
 				loadAndRender();
 			}, 10);
 		} else {
+			imageMetadata.reset();
+			mouseCoords.reset();
+			fullResLoadedForPath = null;
+			cancelPreviewUpgrade();
+			cancelFullResUpgrade();
 			// File cleared
 			imageLoaded = false;
 			imageError = false;

@@ -4,6 +4,7 @@
 import { readDir } from "@tauri-apps/plugin-fs";
 import { invoke } from "@tauri-apps/api/core";
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { env } from "$env/dynamic/public";
 import { logger } from "$lib/utils/logger";
 
 // Supported image formats (must match fileService)
@@ -14,8 +15,34 @@ const SUPPORTED_FORMATS = ["jpg", "jpeg", "png", "gif", "webp", "bmp", "tiff", "
 const PRELOAD_AHEAD = 2; // Preload next 2 images
 const PRELOAD_BEHIND = 1; // Preload previous 1 image
 
-const DECODE_SCALE_FACTOR = 1.25;
+const DECODE_SCALE_FACTOR = 1.0;
 const DECODE_MAX_WIDTH = 4096;
+
+type PreviewMode = "off" | "aggressive" | "progressive";
+
+function parseEnvInt(value: string | undefined, fallback: number): number {
+	if (!value) return fallback;
+	const n = Number.parseInt(value, 10);
+	return Number.isFinite(n) ? n : fallback;
+}
+
+function parseEnvFloat(value: string | undefined, fallback: number): number {
+	if (!value) return fallback;
+	const n = Number.parseFloat(value);
+	return Number.isFinite(n) ? n : fallback;
+}
+
+function normalizePreviewMode(value: string | undefined): PreviewMode {
+	const v = (value ?? "off").toLowerCase();
+	if (v === "aggressive" || v === "progressive" || v === "off") return v;
+	return "off";
+}
+
+const previewMode: PreviewMode = normalizePreviewMode(env.PUBLIC_PREVIEW_MODE);
+const previewLargeImageBytes = parseEnvInt(env.PUBLIC_PREVIEW_LARGE_IMAGE_BYTES, 12_000_000);
+const previewLargeImageMegapixels = parseEnvFloat(env.PUBLIC_PREVIEW_LARGE_IMAGE_MEGAPIXELS, 10);
+const previewAggressiveMaxWidth = parseEnvInt(env.PUBLIC_PREVIEW_AGGRESSIVE_MAX_WIDTH, 2048);
+const previewProgressiveStage2Width = parseEnvInt(env.PUBLIC_PREVIEW_PROGRESSIVE_STAGE2_WIDTH, 2048);
 
 // Cache for preloaded images (keeps them in memory)
 type CachedBitmapEntry = { bitmap: ImageBitmap; resizeWidth: number };
@@ -23,6 +50,147 @@ const imageCache = new Map<string, CachedBitmapEntry>();
 type InFlightDecodeEntry = { resizeWidth: number; token: number; promise: Promise<void> };
 const inFlightDecodes = new Map<string, InFlightDecodeEntry>();
 let inFlightTokenCounter = 0;
+type ImageDimensions = { width: number; height: number };
+const originalDimensionsCache = new Map<string, ImageDimensions>();
+
+function isJpegSOFMarker(marker: number): boolean {
+	return (
+		marker === 0xc0 ||
+		marker === 0xc1 ||
+		marker === 0xc2 ||
+		marker === 0xc3 ||
+		marker === 0xc5 ||
+		marker === 0xc6 ||
+		marker === 0xc7 ||
+		marker === 0xc9 ||
+		marker === 0xca ||
+		marker === 0xcb ||
+		marker === 0xcd ||
+		marker === 0xce ||
+		marker === 0xcf
+	);
+}
+
+function parseDimensionsFromBytes(bytes: Uint8Array): ImageDimensions | null {
+	if (bytes.length < 12) return null;
+
+	// PNG
+	if (
+		bytes.length >= 24 &&
+		bytes[0] === 0x89 &&
+		bytes[1] === 0x50 &&
+		bytes[2] === 0x4e &&
+		bytes[3] === 0x47 &&
+		bytes[4] === 0x0d &&
+		bytes[5] === 0x0a &&
+		bytes[6] === 0x1a &&
+		bytes[7] === 0x0a
+	) {
+		const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+		const type = String.fromCharCode(bytes[12], bytes[13], bytes[14], bytes[15]);
+		if (type !== "IHDR") return null;
+		const width = view.getUint32(16, false);
+		const height = view.getUint32(20, false);
+		if (width > 0 && height > 0) return { width, height };
+		return null;
+	}
+
+	// GIF
+	if (
+		bytes[0] === 0x47 &&
+		bytes[1] === 0x49 &&
+		bytes[2] === 0x46 &&
+		bytes[3] === 0x38 &&
+		(bytes[4] === 0x37 || bytes[4] === 0x39) &&
+		bytes[5] === 0x61
+	) {
+		const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+		const width = view.getUint16(6, true);
+		const height = view.getUint16(8, true);
+		if (width > 0 && height > 0) return { width, height };
+		return null;
+	}
+
+	// BMP
+	if (bytes[0] === 0x42 && bytes[1] === 0x4d && bytes.length >= 26) {
+		const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+		const width = view.getInt32(18, true);
+		const height = Math.abs(view.getInt32(22, true));
+		if (width > 0 && height > 0) return { width, height };
+		return null;
+	}
+
+	// WebP (VP8X)
+	if (
+		bytes.length >= 30 &&
+		bytes[0] === 0x52 &&
+		bytes[1] === 0x49 &&
+		bytes[2] === 0x46 &&
+		bytes[3] === 0x46 &&
+		bytes[8] === 0x57 &&
+		bytes[9] === 0x45 &&
+		bytes[10] === 0x42 &&
+		bytes[11] === 0x50
+	) {
+		let offset = 12;
+		while (offset + 8 <= bytes.length) {
+			const chunkType = String.fromCharCode(bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3]);
+			const chunkSize =
+				bytes[offset + 4] | (bytes[offset + 5] << 8) | (bytes[offset + 6] << 16) | (bytes[offset + 7] << 24);
+			offset += 8;
+			if (chunkType === "VP8X" && offset + 10 <= bytes.length) {
+				const w = 1 + bytes[offset + 4] + (bytes[offset + 5] << 8) + (bytes[offset + 6] << 16);
+				const h = 1 + bytes[offset + 7] + (bytes[offset + 8] << 8) + (bytes[offset + 9] << 16);
+				if (w > 0 && h > 0) return { width: w, height: h };
+				return null;
+			}
+			offset += chunkSize + (chunkSize % 2);
+		}
+	}
+
+	// JPEG
+	if (bytes[0] === 0xff && bytes[1] === 0xd8) {
+		const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+		let offset = 2;
+		while (offset + 4 <= bytes.length) {
+			if (bytes[offset] !== 0xff) {
+				offset++;
+				continue;
+			}
+			let marker = bytes[offset + 1];
+			offset += 2;
+
+			while (marker === 0xff && offset < bytes.length) {
+				marker = bytes[offset];
+				offset++;
+			}
+
+			if (marker === 0xd9 || marker === 0xda) break;
+			if (offset + 2 > bytes.length) break;
+			const segmentLength = view.getUint16(offset, false);
+			if (segmentLength < 2) break;
+			const segmentStart = offset + 2;
+			if (isJpegSOFMarker(marker) && segmentStart + 5 < bytes.length) {
+				const height = view.getUint16(segmentStart + 1, false);
+				const width = view.getUint16(segmentStart + 3, false);
+				if (width > 0 && height > 0) return { width, height };
+				return null;
+			}
+			offset = segmentStart + (segmentLength - 2);
+		}
+	}
+
+	return null;
+}
+
+async function extractOriginalDimensions(blob: Blob): Promise<ImageDimensions | null> {
+	try {
+		const header = new Uint8Array(await blob.slice(0, 256 * 1024).arrayBuffer());
+		return parseDimensionsFromBytes(header);
+	} catch {
+		return null;
+	}
+}
 
 async function logTauri(message: string, level: "info" | "warn" | "error" | "debug" = "info") {
 	try {
@@ -317,8 +485,30 @@ class NavigationStore {
 			throw new Error(`Failed to fetch image for bitmap decode (status ${res.status}, resizeWidth ${resizeWidth})`);
 		}
 		const blob = await res.blob();
+		let dims = originalDimensionsCache.get(path) ?? null;
+		if (!dims) {
+			dims = await extractOriginalDimensions(blob);
+			if (dims) {
+				originalDimensionsCache.set(path, dims);
+			}
+		}
+
+		let effectiveResizeWidth = dims ? Math.min(resizeWidth, dims.width) : resizeWidth;
+		const isLargeByBytes = blob.size >= previewLargeImageBytes;
+		const isLargeByMegapixels = dims ? (dims.width * dims.height) / 1_000_000 >= previewLargeImageMegapixels : false;
+		const isLargeImage = isLargeByBytes || isLargeByMegapixels;
+		if (previewMode !== "off" && isLargeImage) {
+			if (previewMode === "aggressive") {
+				effectiveResizeWidth = Math.min(effectiveResizeWidth, previewAggressiveMaxWidth);
+			} else if (previewMode === "progressive") {
+				effectiveResizeWidth = Math.min(effectiveResizeWidth, previewProgressiveStage2Width);
+			}
+		}
+		if (dims && effectiveResizeWidth >= dims.width) {
+			return await createImageBitmap(blob);
+		}
 		try {
-			return await createImageBitmap(blob, { resizeWidth, resizeQuality: "high" });
+			return await createImageBitmap(blob, { resizeWidth: effectiveResizeWidth, resizeQuality: "high" });
 		} catch {
 			return await createImageBitmap(blob);
 		}
@@ -345,6 +535,7 @@ class NavigationStore {
 			if (!pathsToKeep.has(path)) {
 				imageCache.get(path)?.bitmap.close();
 				imageCache.delete(path);
+				originalDimensionsCache.delete(path);
 				console.log(`[Navigation] Evicted from cache: ${this.getFileName(path)}`);
 			}
 		}
@@ -362,6 +553,10 @@ class NavigationStore {
 	 */
 	getCachedBitmap(path: string): ImageBitmap | null {
 		return imageCache.get(path)?.bitmap ?? null;
+	}
+
+	getOriginalDimensions(path: string): ImageDimensions | null {
+		return originalDimensionsCache.get(path) ?? null;
 	}
 
 	async getOrDecodeBitmap(path: string, resizeWidth?: number): Promise<ImageBitmap | null> {
@@ -427,6 +622,7 @@ class NavigationStore {
 			entry.bitmap.close();
 		}
 		imageCache.clear();
+		originalDimensionsCache.clear();
 		console.log("[Navigation] Cache cleared");
 	}
 

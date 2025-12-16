@@ -46,6 +46,11 @@ void main() {
 }
 `;
 
+type LoadImageOptions = {
+	forceUpload?: boolean;
+	preserveImageSize?: boolean;
+};
+
 export class WebGLRenderer {
 	private webGLCtx: WebGLRenderingContext | null = null;
 	private program: WebGLProgram | null = null;
@@ -153,18 +158,20 @@ export class WebGLRenderer {
 	/**
 	 * Load an image as a texture
 	 */
-	loadImage(img: TexImageSource, key: string): boolean {
+	loadImage(img: TexImageSource, key: string, options?: LoadImageOptions): boolean {
 		if (!this.webGLCtx) {
 			console.error("[WebGLRenderer] Cannot load image - not initialized");
 			return false;
 		}
 
 		const gl = this.webGLCtx;
+		const forceUpload = options?.forceUpload ?? false;
+		const preserveImageSize = options?.preserveImageSize ?? false;
 		const tStart = performance.now();
 
 		// Try cached texture first
 		const cachedTexture = this.textureCache.get(key);
-		if (cachedTexture) {
+		if (cachedTexture && !forceUpload) {
 			gl.bindTexture(gl.TEXTURE_2D, cachedTexture);
 			this.texture = cachedTexture;
 			this.currentTextureKey = key;
@@ -182,6 +189,11 @@ export class WebGLRenderer {
 				cacheSize: this.textureCache.size,
 			});
 			return true;
+		}
+
+		if (cachedTexture && forceUpload) {
+			gl.deleteTexture(cachedTexture);
+			this.textureCache.delete(key);
 		}
 
 		// No cached texture for this key - upload a new one
@@ -205,8 +217,10 @@ export class WebGLRenderer {
 		const tUploadEnd = performance.now();
 
 		const size = this.getSourceSize(img);
-		this.imageWidth = size?.width ?? this.imageWidth;
-		this.imageHeight = size?.height ?? this.imageHeight;
+		if (!preserveImageSize || this.imageWidth === 0 || this.imageHeight === 0) {
+			this.imageWidth = size?.width ?? this.imageWidth;
+			this.imageHeight = size?.height ?? this.imageHeight;
+		}
 
 		// Track as current texture and add to cache
 		this.texture = texture;
@@ -227,6 +241,8 @@ export class WebGLRenderer {
 				width: this.imageWidth,
 				height: this.imageHeight,
 				cached: false,
+				forceUpload,
+				preserveImageSize,
 				cacheSize: this.textureCache.size,
 			}
 		);
