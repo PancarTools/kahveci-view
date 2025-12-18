@@ -254,7 +254,7 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 
 - [ ] Copy/Move/Delete operations with confirmation
 - [ ] Rename with validation
-- [ ] File association management for "Open with"
+- [x] File association management for "Open with" (open images on double-click)
 - [ ] Drag & drop support for files and folders
 - [ ] Multiple file selection
 
@@ -398,7 +398,7 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 
 ### 8.1 Platform Integration
 
-- [ ] System file association management
+- [x] System file association management
 - [ ] Context menu integration (right-click to open)
 - [ ] Thumbnail generation for OS file managers
 - [ ] System notifications

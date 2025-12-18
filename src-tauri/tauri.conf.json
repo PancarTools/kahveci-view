@@ -33,6 +33,44 @@
 	"bundle": {
 		"active": true,
 		"targets": "all",
-		"icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"]
+		"icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
+		"fileAssociations": [
+			{
+				"ext": ["jpg", "jpeg"],
+				"name": "JPEG Image",
+				"role": "Viewer",
+				"mimeType": "image/jpeg"
+			},
+			{
+				"ext": ["png"],
+				"name": "PNG Image",
+				"role": "Viewer",
+				"mimeType": "image/png"
+			},
+			{
+				"ext": ["gif"],
+				"name": "GIF Image",
+				"role": "Viewer",
+				"mimeType": "image/gif"
+			},
+			{
+				"ext": ["webp"],
+				"name": "WebP Image",
+				"role": "Viewer",
+				"mimeType": "image/webp"
+			},
+			{
+				"ext": ["bmp"],
+				"name": "Bitmap Image",
+				"role": "Viewer",
+				"mimeType": "image/bmp"
+			},
+			{
+				"ext": ["tiff", "tif"],
+				"name": "TIFF Image",
+				"role": "Viewer",
+				"mimeType": "image/tiff"
+			}
+		]
 	}
 }

@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { dev } from '$app/environment';
 	import { env } from '$env/dynamic/public';
 	import Toolbar from '$lib/components/Toolbar.svelte';
@@ -8,21 +7,58 @@
 	import ImageViewer from '$lib/components/ImageViewer.svelte';
 	import { getFileService } from '$lib/stores/fileService.svelte';
 	import { getNavigationStore } from '$lib/stores/navigationStore.svelte';
-	import { setupGlobalErrorHandling } from '$lib/utils/logger';
+	import { logger, setupGlobalErrorHandling } from '$lib/utils/logger';
 
 	const fileService = getFileService();
 	const navStore = getNavigationStore();
 
-	onMount(() => {
+	$effect(() => {
 		setupGlobalErrorHandling();
-		
-		// Auto-load test image after 500ms (development only)
+
 		const testImagePath = env.PUBLIC_DEV_AUTOLOAD_IMAGE_PATH;
 		if (dev && testImagePath && testImagePath.trim().length > 0) {
 			setTimeout(async () => {
 				await fileService.openFileByPath(testImagePath);
 			}, 500);
 		}
+
+		let unlisten: null | (() => void) = null;
+		let cancelled = false;
+		void (async () => {
+			try {
+				const { invoke } = await import('@tauri-apps/api/core');
+				const { listen } = await import('@tauri-apps/api/event');
+
+				try {
+					const pending = await invoke<string[]>('take_pending_open_files');
+					if (!cancelled && Array.isArray(pending) && pending.length > 0) {
+						const filePath = pending[pending.length - 1];
+						logger.info('Drained pending open files', 'FileAssociation', {
+							count: pending.length,
+							filePath,
+						});
+						await fileService.openFileByPath(filePath);
+					}
+				} catch (error) {
+					logger.error('Failed to drain pending open files', 'FileAssociation', { error });
+				}
+
+				unlisten = await listen<string>('file-opened', async (event) => {
+					const filePath = event.payload;
+					logger.info('Received file-opened event', 'FileAssociation', { filePath });
+					if (filePath && typeof filePath === 'string') {
+						await fileService.openFileByPath(filePath);
+					}
+				});
+			} catch (error) {
+				logger.error('Failed to listen for file-opened event', 'FileAssociation', { error });
+			}
+		})();
+
+		return () => {
+			cancelled = true;
+			unlisten?.();
+		};
 	});
 
 	// Keyboard navigation handler

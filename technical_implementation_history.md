@@ -1855,6 +1855,8 @@ class ViewerControls {
 - Added explicit log events for progressive preview mode so terminal output clearly shows stage-1 sizing, stage-2 scheduling/start, and stage-2 completion.
 - Implemented non-destructive image transforms (rotate left/right in 90° steps and horizontal/vertical flips) using WebGL shader uniforms, wired through `viewerControls` and the toolbar, while keeping zoom/pan and mouse-to-original-pixel mapping accurate.
 - Updated zoom controls so `Actual Size` and zoom in/out actions preserve the current viewport framing (anchor zoom around the viewport center) instead of re-centering the image on every action.
+- Implemented OS file association handling for common image formats via `tauri.conf.json` `bundle.fileAssociations`, and added a Rust `RunEvent::Opened` handler that emits a `file-opened` event consumed by the frontend to open the path via `FileService.openFileByPath`.
+- Fixed the file-association cold-start race by queuing opened file paths on the Rust side and draining them on frontend startup (via a `take_pending_open_files` command) before registering the live `file-opened` listener.
 - Effect: Navigating back to or forward into recently viewed large images no longer pays the full `texImage2D` cost on first visible visit, significantly reducing perceived latency for back/forward navigation.
 
 ---
