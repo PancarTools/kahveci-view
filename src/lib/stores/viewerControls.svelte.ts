@@ -7,6 +7,7 @@
 
 type ZoomFunction = () => void;
 type GetZoomFunction = () => number;
+type TransformFunction = () => void;
 
 class ViewerControls {
 	// Registered functions (set by ImageViewer)
@@ -15,6 +16,11 @@ class ViewerControls {
 	private _zoomIn: ZoomFunction | null = null;
 	private _zoomOut: ZoomFunction | null = null;
 	private _getZoomPercentage: GetZoomFunction | null = null;
+	private _rotateLeft: TransformFunction | null = null;
+	private _rotateRight: TransformFunction | null = null;
+	private _flipHorizontal: TransformFunction | null = null;
+	private _flipVertical: TransformFunction | null = null;
+	private _resetTransform: TransformFunction | null = null;
 
 	// Reactive state for UI
 	zoomPercentage = $state(100);
@@ -29,12 +35,22 @@ class ViewerControls {
 		zoomIn: ZoomFunction;
 		zoomOut: ZoomFunction;
 		getZoomPercentage: GetZoomFunction;
+		rotateLeft: TransformFunction;
+		rotateRight: TransformFunction;
+		flipHorizontal: TransformFunction;
+		flipVertical: TransformFunction;
+		resetTransform: TransformFunction;
 	}) {
 		this._fitToWindow = fns.fitToWindow;
 		this._actualSize = fns.actualSize;
 		this._zoomIn = fns.zoomIn;
 		this._zoomOut = fns.zoomOut;
 		this._getZoomPercentage = fns.getZoomPercentage;
+		this._rotateLeft = fns.rotateLeft;
+		this._rotateRight = fns.rotateRight;
+		this._flipHorizontal = fns.flipHorizontal;
+		this._flipVertical = fns.flipVertical;
+		this._resetTransform = fns.resetTransform;
 		this.isRegistered = true;
 	}
 
@@ -45,6 +61,11 @@ class ViewerControls {
 		this._zoomIn = null;
 		this._zoomOut = null;
 		this._getZoomPercentage = null;
+		this._rotateLeft = null;
+		this._rotateRight = null;
+		this._flipHorizontal = null;
+		this._flipVertical = null;
+		this._resetTransform = null;
 		this.isRegistered = false;
 		this.zoomPercentage = 100;
 		this.fullResLoading = false;
@@ -86,6 +107,26 @@ class ViewerControls {
 
 	zoomOut() {
 		this._zoomOut?.();
+	}
+
+	rotateLeft() {
+		this._rotateLeft?.();
+	}
+
+	rotateRight() {
+		this._rotateRight?.();
+	}
+
+	flipHorizontal() {
+		this._flipHorizontal?.();
+	}
+
+	flipVertical() {
+		this._flipVertical?.();
+	}
+
+	resetTransform() {
+		this._resetTransform?.();
 	}
 }
 

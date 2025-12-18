@@ -1853,10 +1853,12 @@ class ViewerControls {
 - Parametrized the development auto-load test image path via `PUBLIC_DEV_AUTOLOAD_IMAGE_PATH` and skip auto-load when unset.
 - Added env-controlled preview modes (`PUBLIC_PREVIEW_MODE`: off/aggressive/progressive) that reduce initial GPU upload cost for large images by capping decode size (aggressive) or decoding a small stage-1 preview and upgrading to a larger stage-2 preview during idle time (progressive).
 - Added explicit log events for progressive preview mode so terminal output clearly shows stage-1 sizing, stage-2 scheduling/start, and stage-2 completion.
+- Implemented non-destructive image transforms (rotate left/right in 90° steps and horizontal/vertical flips) using WebGL shader uniforms, wired through `viewerControls` and the toolbar, while keeping zoom/pan and mouse-to-original-pixel mapping accurate.
+- Updated zoom controls so `Actual Size` and zoom in/out actions preserve the current viewport framing (anchor zoom around the viewport center) instead of re-centering the image on every action.
 - Effect: Navigating back to or forward into recently viewed large images no longer pays the full `texImage2D` cost on first visible visit, significantly reducing perceived latency for back/forward navigation.
 
 ---
 
-_Last Updated: December 17, 2025_  
+_Last Updated: December 18, 2025_  
 _Current Phase: 3.2.5 - WebGL Rendering Migration (COMPLETED ✅)_  
 _Next Milestone: Phase 3.3 - Full-Screen & Presentation_

@@ -7,6 +7,7 @@
 		FolderOpen, Save, Printer, FolderTree,
 		Undo, Redo, MousePointer, Copy, Clipboard, Scissors, Crop,
 		RotateCcw, RotateCw,
+		FlipHorizontal, FlipVertical,
 		ZoomIn, ZoomOut, Maximize, Square,
 		ChevronLeft, ChevronRight,
 		Minus, WindowSquare, X
@@ -32,8 +33,22 @@
 	function handlePaste() { logger.debug("Paste clicked (mock)", "TOOLBAR"); }
 	function handleCut() { logger.debug("Cut clicked (mock)", "TOOLBAR"); }
 	function handleCrop() { logger.debug("Crop clicked (mock)", "TOOLBAR"); }
-	function handleRotateLeft() { logger.debug("Rotate left clicked (mock)", "TOOLBAR"); }
-	function handleRotateRight() { logger.debug("Rotate right clicked (mock)", "TOOLBAR"); }
+	function handleRotateLeft() {
+		logger.debug("Rotate left clicked", "TOOLBAR");
+		viewerControls.rotateLeft();
+	}
+	function handleRotateRight() {
+		logger.debug("Rotate right clicked", "TOOLBAR");
+		viewerControls.rotateRight();
+	}
+	function handleFlipHorizontal() {
+		logger.debug("Flip horizontal clicked", "TOOLBAR");
+		viewerControls.flipHorizontal();
+	}
+	function handleFlipVertical() {
+		logger.debug("Flip vertical clicked", "TOOLBAR");
+		viewerControls.flipVertical();
+	}
 
 	// Zoom controls
 	function handleZoomIn() {
@@ -289,6 +304,24 @@
 			title="Rotate Right (Ctrl+R)"
 		>
 			<RotateCw class={iconClass} />
+		</button>
+
+		<button 
+			class={buttonClass}
+			onclick={handleFlipHorizontal}
+			disabled={!fileService.currentFile}
+			title="Flip Horizontal"
+		>
+			<FlipHorizontal class={iconClass} />
+		</button>
+
+		<button 
+			class={buttonClass}
+			onclick={handleFlipVertical}
+			disabled={!fileService.currentFile}
+			title="Flip Vertical"
+		>
+			<FlipVertical class={iconClass} />
 		</button>
 
 		<!-- Separator -->

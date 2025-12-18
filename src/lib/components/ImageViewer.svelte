@@ -51,6 +51,11 @@
 	let currentScale = 1;
 	let currentOffsetX = 0;
 	let currentOffsetY = 0;
+	let currentRotation = 0;
+	let currentFlipX = false;
+	let currentFlipY = false;
+	let transformAnimationTimer: number | null = null;
+	let transformAnimationRaf: number | null = null;
 
 	// Zoom settings
 	const MIN_SCALE = 0.1;
@@ -198,13 +203,17 @@
 		if (!renderer || !renderer.hasImage()) return;
 		void requestFullResUpgrade();
 		
-		const { width: imgW, height: imgH } = renderer.getImageSize();
 		const { width: containerW, height: containerH } = renderer.getCanvasSize();
+		const { width: imgW, height: imgH } = renderer.getImageSize();
 		
-		// 100% scale, centered
+		// 100% scale, preserve current framing by keeping the current viewport center fixed
 		const targetScale = 1;
-		const targetOffsetX = (containerW - imgW) / 2;
-		const targetOffsetY = (containerH - imgH) / 2;
+		const viewportCenterX = containerW / 2;
+		const viewportCenterY = containerH / 2;
+		const imagePointX = (viewportCenterX - currentOffsetX) / currentScale;
+		const imagePointY = (viewportCenterY - currentOffsetY) / currentScale;
+		const targetOffsetX = viewportCenterX - imagePointX * targetScale;
+		const targetOffsetY = viewportCenterY - imagePointY * targetScale;
 		
 		animateTo(targetScale, targetOffsetX, targetOffsetY);
 	}
@@ -213,16 +222,16 @@
 		if (!renderer || !renderer.hasImage()) return;
 		void requestFullResUpgrade();
 		
-		const { width: imgW, height: imgH } = renderer.getImageSize();
 		const { width: containerW, height: containerH } = renderer.getCanvasSize();
+		const { width: imgW, height: imgH } = renderer.getImageSize();
 		
 		const targetScale = Math.min(MAX_SCALE, currentScale * 1.5);
-		const scaledW = imgW * targetScale;
-		const scaledH = imgH * targetScale;
-		
-		// Keep centered
-		const targetOffsetX = (containerW - scaledW) / 2;
-		const targetOffsetY = (containerH - scaledH) / 2;
+		const viewportCenterX = containerW / 2;
+		const viewportCenterY = containerH / 2;
+		const imagePointX = (viewportCenterX - currentOffsetX) / currentScale;
+		const imagePointY = (viewportCenterY - currentOffsetY) / currentScale;
+		const targetOffsetX = viewportCenterX - imagePointX * targetScale;
+		const targetOffsetY = viewportCenterY - imagePointY * targetScale;
 		
 		animateTo(targetScale, targetOffsetX, targetOffsetY);
 	}
@@ -231,16 +240,16 @@
 		if (!renderer || !renderer.hasImage()) return;
 		void requestFullResUpgrade();
 		
-		const { width: imgW, height: imgH } = renderer.getImageSize();
 		const { width: containerW, height: containerH } = renderer.getCanvasSize();
+		const { width: imgW, height: imgH } = renderer.getImageSize();
 		
 		const targetScale = Math.max(MIN_SCALE, currentScale / 1.5);
-		const scaledW = imgW * targetScale;
-		const scaledH = imgH * targetScale;
-		
-		// Keep centered
-		const targetOffsetX = (containerW - scaledW) / 2;
-		const targetOffsetY = (containerH - scaledH) / 2;
+		const viewportCenterX = containerW / 2;
+		const viewportCenterY = containerH / 2;
+		const imagePointX = (viewportCenterX - currentOffsetX) / currentScale;
+		const imagePointY = (viewportCenterY - currentOffsetY) / currentScale;
+		const targetOffsetX = viewportCenterX - imagePointX * targetScale;
+		const targetOffsetY = viewportCenterY - imagePointY * targetScale;
 		
 		animateTo(targetScale, targetOffsetX, targetOffsetY);
 	}
@@ -248,6 +257,120 @@
 	// Get current zoom percentage (for status bar)
 	export function getZoomPercentage(): number {
 		return Math.round(currentScale * 100);
+	}
+
+	function cancelTransformAnimation(): void {
+		if (transformAnimationTimer !== null) {
+			window.clearTimeout(transformAnimationTimer);
+			transformAnimationTimer = null;
+		}
+		if (transformAnimationRaf !== null) {
+			window.cancelAnimationFrame(transformAnimationRaf);
+			transformAnimationRaf = null;
+		}
+		if (canvasElement) {
+			canvasElement.style.transition = "";
+			canvasElement.style.transform = "";
+			canvasElement.style.transformOrigin = "";
+		}
+	}
+
+	function animateCanvasInverseTransform(inverseCssTransform: string, durationMs: number): void {
+		if (!canvasElement) return;
+		cancelTransformAnimation();
+		canvasElement.style.transformOrigin = "center center";
+		canvasElement.style.transition = "none";
+		canvasElement.style.transform = inverseCssTransform;
+		canvasElement.getBoundingClientRect();
+		transformAnimationRaf = window.requestAnimationFrame(() => {
+			transformAnimationRaf = null;
+			if (!canvasElement) return;
+			canvasElement.style.transition = `transform ${durationMs}ms cubic-bezier(0.2, 0.8, 0.2, 1)`;
+			canvasElement.style.transform = "none";
+			transformAnimationTimer = window.setTimeout(() => {
+				transformAnimationTimer = null;
+				if (!canvasElement) return;
+				canvasElement.style.transition = "";
+				canvasElement.style.transform = "";
+				canvasElement.style.transformOrigin = "";
+			}, durationMs + 20);
+		});
+	}
+
+	function applyTransformAndKeepCenter(
+		nextRotation: number,
+		nextFlipX: boolean,
+		nextFlipY: boolean,
+		options?: { inverseCssTransform?: string; durationMs?: number; alwaysFitToWindow?: boolean }
+	): void {
+		if (!renderer || !renderer.hasImage()) return;
+		const durationMs = options?.durationMs ?? 160;
+		const before = renderer.getImageSize();
+		const centerX = currentOffsetX + (before.width * currentScale) / 2;
+		const centerY = currentOffsetY + (before.height * currentScale) / 2;
+		renderer.setTransform(nextRotation, nextFlipX, nextFlipY);
+		const after = renderer.getImageSize();
+		currentOffsetX = centerX - (after.width * currentScale) / 2;
+		currentOffsetY = centerY - (after.height * currentScale) / 2;
+		currentRotation = ((nextRotation % 4) + 4) % 4;
+		currentFlipX = nextFlipX;
+		currentFlipY = nextFlipY;
+
+		const { width: containerW, height: containerH } = renderer.getCanvasSize();
+		const { scale: fitScale, offsetX: fitOffsetX, offsetY: fitOffsetY } = calculateFitToWindow(
+			after.width,
+			after.height,
+			containerW,
+			containerH
+		);
+
+		// Rotate should always re-fit to window (reset zoom down/up as needed).
+		// Flips keep current zoom unless it would overflow.
+		if (options?.alwaysFitToWindow) {
+			render();
+			animateTo(fitScale, fitOffsetX, fitOffsetY);
+		} else if (currentScale > fitScale) {
+			render();
+			animateTo(fitScale, fitOffsetX, fitOffsetY);
+		} else {
+			clampOffset();
+			render();
+		}
+		if (options?.inverseCssTransform) {
+			animateCanvasInverseTransform(options.inverseCssTransform, durationMs);
+		}
+	}
+
+	export function rotateLeft(): void {
+		applyTransformAndKeepCenter(currentRotation - 1, currentFlipX, currentFlipY, {
+			inverseCssTransform: "rotate(90deg)",
+			alwaysFitToWindow: true,
+		});
+	}
+
+	export function rotateRight(): void {
+		applyTransformAndKeepCenter(currentRotation + 1, currentFlipX, currentFlipY, {
+			inverseCssTransform: "rotate(-90deg)",
+			alwaysFitToWindow: true,
+		});
+	}
+
+	export function flipHorizontal(): void {
+		const inverseCssTransform = currentRotation % 2 === 0 ? "scaleX(-1)" : "scaleY(-1)";
+		applyTransformAndKeepCenter(currentRotation, !currentFlipX, currentFlipY, {
+			inverseCssTransform,
+		});
+	}
+
+	export function flipVertical(): void {
+		const inverseCssTransform = currentRotation % 2 === 0 ? "scaleY(-1)" : "scaleX(-1)";
+		applyTransformAndKeepCenter(currentRotation, currentFlipX, !currentFlipY, {
+			inverseCssTransform,
+		});
+	}
+
+	export function resetTransform(): void {
+		applyTransformAndKeepCenter(0, false, false);
 	}
 
 	// Load image helper
@@ -655,7 +778,7 @@
 		const canvasX = event.clientX - rect.left;
 		const canvasY = event.clientY - rect.top;
 
-		// Convert canvas coords to image coords
+		// Convert canvas coords to image coords (in displayed/transformed space)
 		const imgX = (canvasX - currentOffsetX) / currentScale;
 		const imgY = (canvasY - currentOffsetY) / currentScale;
 
@@ -664,18 +787,39 @@
 			mouseCoords.setOverImage(false);
 			return;
 		}
-		const scaleX = imageMetadata.naturalWidth / imgW;
-		const scaleY = imageMetadata.naturalHeight / imgH;
+		const nx = imgX / imgW;
+		const ny = imgY / imgH;
+		const transform = renderer.getTransform();
+		let u = nx;
+		let v = ny;
+		if (transform.flipX) {
+			u = 1 - u;
+		}
+		if (transform.flipY) {
+			v = 1 - v;
+		}
+		if (transform.rotation === 1) {
+			const prevU = u;
+			u = v;
+			v = 1 - prevU;
+		} else if (transform.rotation === 2) {
+			u = 1 - u;
+			v = 1 - v;
+		} else if (transform.rotation === 3) {
+			const prevU = u;
+			u = 1 - v;
+			v = prevU;
+		}
 
 		// Check if within image bounds
 		if (imgX >= 0 && imgX < imgW && imgY >= 0 && imgY < imgH) {
 			const originalX = Math.min(
 				imageMetadata.naturalWidth - 1,
-				Math.max(0, Math.round(imgX * scaleX))
+				Math.max(0, Math.round(u * imageMetadata.naturalWidth))
 			);
 			const originalY = Math.min(
 				imageMetadata.naturalHeight - 1,
-				Math.max(0, Math.round(imgY * scaleY))
+				Math.max(0, Math.round(v * imageMetadata.naturalHeight))
 			);
 			mouseCoords.updatePosition(originalX, originalY);
 			mouseCoords.setOverImage(true);
@@ -1055,7 +1199,12 @@
 			actualSize,
 			zoomIn,
 			zoomOut,
-			getZoomPercentage
+			getZoomPercentage,
+			rotateLeft,
+			rotateRight,
+			flipHorizontal,
+			flipVertical,
+			resetTransform
 		});
 
 		// Wait a tick for canvas to be bound
@@ -1120,6 +1269,11 @@
 			imageMetadata.reset();
 			mouseCoords.reset();
 			mouseCoords.setOverImage(false);
+			cancelTransformAnimation();
+			currentRotation = 0;
+			currentFlipX = false;
+			currentFlipY = false;
+			renderer?.resetTransform();
 			fullResLoadedForPath = null;
 			cancelPreviewUpgrade();
 			cancelFullResUpgrade();

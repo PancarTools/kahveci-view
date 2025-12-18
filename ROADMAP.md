@@ -227,8 +227,10 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 
 ### 3.4 Advanced Image Handling
 
-- [ ] Rotation (90°, 180°, 270°)
-- [ ] Flip horizontal/vertical (non-destructive)
+- [x] Rotation (90°, 180°, 270°)
+- [x] Flip horizontal/vertical (non-destructive)
+- [x] Animated rotate/flip transitions
+- [x] Zoom button actions preserve current framing (no auto-centering)
 - [ ] Support for animated GIF/WebP playback
 - [ ] EXIF data reading and display
 - [ ] Image properties panel with metadata

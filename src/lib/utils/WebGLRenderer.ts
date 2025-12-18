@@ -16,6 +16,8 @@ uniform vec2 u_resolution;
 uniform float u_scale;
 uniform vec2 u_offset;
 uniform vec2 u_imageSize;
+uniform int u_rotation;
+uniform vec2 u_flip;
 
 varying vec2 v_texCoord;
 
@@ -29,7 +31,24 @@ void main() {
     // Flip Y axis (WebGL has Y up, we want Y down)
     gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
     
-    v_texCoord = a_texCoord;
+    vec2 uv = a_texCoord;
+    if (u_flip.x > 0.5) {
+        uv.x = 1.0 - uv.x;
+    }
+    if (u_flip.y > 0.5) {
+        uv.y = 1.0 - uv.y;
+    }
+
+    // Rotate in 90-degree clockwise steps
+    if (u_rotation == 1) {
+        uv = vec2(uv.y, 1.0 - uv.x);
+    } else if (u_rotation == 2) {
+        uv = vec2(1.0 - uv.x, 1.0 - uv.y);
+    } else if (u_rotation == 3) {
+        uv = vec2(1.0 - uv.y, uv.x);
+    }
+
+    v_texCoord = uv;
 }
 `;
 
@@ -66,6 +85,8 @@ export class WebGLRenderer {
 	private u_scale: WebGLUniformLocation | null = null;
 	private u_offset: WebGLUniformLocation | null = null;
 	private u_imageSize: WebGLUniformLocation | null = null;
+	private u_rotation: WebGLUniformLocation | null = null;
+	private u_flip: WebGLUniformLocation | null = null;
 
 	// Attribute locations
 	private a_position: number = -1;
@@ -76,6 +97,11 @@ export class WebGLRenderer {
 	private canvasHeight = 0;
 	private imageWidth = 0;
 	private imageHeight = 0;
+	private baseImageWidth = 0;
+	private baseImageHeight = 0;
+	private rotation = 0;
+	private flipX = false;
+	private flipY = false;
 	private isInitialized = false;
 
 	/**
@@ -86,7 +112,7 @@ export class WebGLRenderer {
 
 		// Get WebGL context
 		this.webGLCtx = canvas.getContext("webgl", {
-			alpha: false,
+			alpha: true,
 			antialias: false,
 			premultipliedAlpha: false,
 			preserveDrawingBuffer: false,
@@ -122,6 +148,8 @@ export class WebGLRenderer {
 		this.u_scale = gl.getUniformLocation(this.program, "u_scale");
 		this.u_offset = gl.getUniformLocation(this.program, "u_offset");
 		this.u_imageSize = gl.getUniformLocation(this.program, "u_imageSize");
+		this.u_rotation = gl.getUniformLocation(this.program, "u_rotation");
+		this.u_flip = gl.getUniformLocation(this.program, "u_flip");
 
 		// Create buffers
 		this.positionBuffer = gl.createBuffer();
@@ -176,8 +204,9 @@ export class WebGLRenderer {
 			this.texture = cachedTexture;
 			this.currentTextureKey = key;
 			const size = this.getSourceSize(img);
-			this.imageWidth = size?.width ?? this.imageWidth;
-			this.imageHeight = size?.height ?? this.imageHeight;
+			this.baseImageWidth = size?.width ?? this.baseImageWidth;
+			this.baseImageHeight = size?.height ?? this.baseImageHeight;
+			this.updateDisplayedSize();
 
 			const tEnd = performance.now();
 			logger.info(`loadImage cache hit in ${(tEnd - tStart).toFixed(1)}ms`, "PERF/WebGL", {
@@ -218,8 +247,9 @@ export class WebGLRenderer {
 
 		const size = this.getSourceSize(img);
 		if (!preserveImageSize || this.imageWidth === 0 || this.imageHeight === 0) {
-			this.imageWidth = size?.width ?? this.imageWidth;
-			this.imageHeight = size?.height ?? this.imageHeight;
+			this.baseImageWidth = size?.width ?? this.baseImageWidth;
+			this.baseImageHeight = size?.height ?? this.baseImageHeight;
+			this.updateDisplayedSize();
 		}
 
 		// Track as current texture and add to cache
@@ -314,7 +344,7 @@ export class WebGLRenderer {
 		const gl = this.webGLCtx;
 
 		// Clear with dark background
-		gl.clearColor(0.078, 0.086, 0.094, 1.0); // hsl(220, 8%, 8%)
+		gl.clearColor(0.0, 0.0, 0.0, 0.0);
 		gl.clear(gl.COLOR_BUFFER_BIT);
 
 		gl.useProgram(this.program);
@@ -324,6 +354,12 @@ export class WebGLRenderer {
 		gl.uniform1f(this.u_scale, scale);
 		gl.uniform2f(this.u_offset, offsetX, offsetY);
 		gl.uniform2f(this.u_imageSize, this.imageWidth, this.imageHeight);
+		if (this.u_rotation) {
+			gl.uniform1i(this.u_rotation, this.rotation);
+		}
+		if (this.u_flip) {
+			gl.uniform2f(this.u_flip, this.flipX ? 1 : 0, this.flipY ? 1 : 0);
+		}
 
 		// Bind position buffer
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
@@ -348,6 +384,24 @@ export class WebGLRenderer {
 	 */
 	getImageSize(): { width: number; height: number } {
 		return { width: this.imageWidth, height: this.imageHeight };
+	}
+
+	getTransform(): { rotation: number; flipX: boolean; flipY: boolean } {
+		return { rotation: this.rotation, flipX: this.flipX, flipY: this.flipY };
+	}
+
+	setTransform(rotation: number, flipX: boolean, flipY: boolean): void {
+		this.rotation = ((rotation % 4) + 4) % 4;
+		this.flipX = flipX;
+		this.flipY = flipY;
+		this.updateDisplayedSize();
+	}
+
+	resetTransform(): void {
+		this.rotation = 0;
+		this.flipX = false;
+		this.flipY = false;
+		this.updateDisplayedSize();
 	}
 
 	/**
@@ -389,6 +443,13 @@ export class WebGLRenderer {
 
 		this.texture = null;
 		this.currentTextureKey = null;
+		this.baseImageWidth = 0;
+		this.baseImageHeight = 0;
+		this.imageWidth = 0;
+		this.imageHeight = 0;
+		this.rotation = 0;
+		this.flipX = false;
+		this.flipY = false;
 		this.positionBuffer = null;
 		this.texCoordBuffer = null;
 		this.program = null;
@@ -489,5 +550,17 @@ export class WebGLRenderer {
 			return { width: anySource.width, height: anySource.height };
 		}
 		return null;
+	}
+
+	private updateDisplayedSize(): void {
+		if (this.baseImageWidth <= 0 || this.baseImageHeight <= 0) return;
+		const rot = this.rotation % 4;
+		if (rot === 1 || rot === 3) {
+			this.imageWidth = this.baseImageHeight;
+			this.imageHeight = this.baseImageWidth;
+		} else {
+			this.imageWidth = this.baseImageWidth;
+			this.imageHeight = this.baseImageHeight;
+		}
 	}
 }
