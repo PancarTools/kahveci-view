@@ -70,6 +70,90 @@
 				"name": "TIFF Image",
 				"role": "Viewer",
 				"mimeType": "image/tiff"
+			},
+			{
+				"ext": ["svg"],
+				"name": "SVG Image",
+				"role": "Viewer",
+				"mimeType": "image/svg+xml"
+			},
+			{
+				"ext": ["heic", "heif"],
+				"name": "HEIF Image",
+				"role": "Viewer",
+				"mimeType": "image/heif"
+			},
+			{
+				"ext": ["avif"],
+				"name": "AVIF Image",
+				"role": "Viewer",
+				"mimeType": "image/avif"
+			},
+			{
+				"ext": ["jxl"],
+				"name": "JPEG XL Image",
+				"role": "Viewer",
+				"mimeType": "image/jxl"
+			},
+			{
+				"ext": ["ico"],
+				"name": "Icon File",
+				"role": "Viewer",
+				"mimeType": "image/x-icon"
+			},
+			{
+				"ext": ["icns"],
+				"name": "macOS Icon",
+				"role": "Viewer",
+				"mimeType": "image/x-icns"
+			},
+			{
+				"ext": ["psd"],
+				"name": "Photoshop Document",
+				"role": "Viewer",
+				"mimeType": "image/vnd.adobe.photoshop"
+			},
+			{
+				"ext": ["tga"],
+				"name": "TGA Image",
+				"role": "Viewer",
+				"mimeType": "image/x-tga"
+			},
+			{
+				"ext": ["exr"],
+				"name": "OpenEXR Image",
+				"role": "Viewer",
+				"mimeType": "image/x-exr"
+			},
+			{
+				"ext": ["hdr"],
+				"name": "HDR Image",
+				"role": "Viewer",
+				"mimeType": "image/vnd.radiance"
+			},
+			{
+				"ext": ["pic", "pct"],
+				"name": "PICT Image",
+				"role": "Viewer",
+				"mimeType": "image/x-pict"
+			},
+			{
+				"ext": ["qoi"],
+				"name": "QOI Image",
+				"role": "Viewer",
+				"mimeType": "image/x-qoi"
+			},
+			{
+				"ext": ["jng"],
+				"name": "JNG Image",
+				"role": "Viewer",
+				"mimeType": "image/x-jng"
+			},
+			{
+				"ext": ["mng"],
+				"name": "MNG Image",
+				"role": "Viewer",
+				"mimeType": "video/x-mng"
 			}
 		]
 	}

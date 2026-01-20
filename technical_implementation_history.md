@@ -1857,6 +1857,10 @@ class ViewerControls {
 - Updated zoom controls so `Actual Size` and zoom in/out actions preserve the current viewport framing (anchor zoom around the viewport center) instead of re-centering the image on every action.
 - Implemented OS file association handling for common image formats via `tauri.conf.json` `bundle.fileAssociations`, and added a Rust `RunEvent::Opened` handler that emits a `file-opened` event consumed by the frontend to open the path via `FileService.openFileByPath`.
 - Fixed the file-association cold-start race by queuing opened file paths on the Rust side and draining them on frontend startup (via a `take_pending_open_files` command) before registering the live `file-opened` listener.
+- Added a zoom minimap overlay in `ImageViewer` that appears when zoomed beyond fit-to-window, renders a small thumbnail with the current rotation/flip applied, shows the current viewport rectangle, and supports click/drag to pan.
+- Added a `PUBLIC_MINIMAP_ENABLED` feature flag (defaults to true) to allow disabling the minimap via environment configuration.
+- Expanded image format support from 9 to 25+ formats including HEIC/HEIF, AVIF, JPEG XL, SVG, ICO, ICNS, PSD, TGA, OpenEXR, HDR, PICT, QOI, JNG, and MNG, with corresponding OS file associations and dimension parsing where feasible.
+- Fixed SVG rendering by implementing `convertSvgToBitmap()` function that renders SVG to Canvas before converting to ImageBitmap for WebGL texture upload, resolving browser limitations with direct SVG-to-ImageBitmap conversion.
 - Effect: Navigating back to or forward into recently viewed large images no longer pays the full `texImage2D` cost on first visible visit, significantly reducing perceived latency for back/forward navigation.
 
 ---

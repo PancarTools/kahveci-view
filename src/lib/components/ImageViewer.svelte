@@ -17,13 +17,28 @@
 	const mouseCoords = getMouseCoordinates();
 	const navStore = getNavigationStore();
 
+	// Feature flags
+	const minimapEnabled = env.PUBLIC_MINIMAP_ENABLED !== "false";
+
 	// DOM elements
 	let canvasElement: HTMLCanvasElement | null = $state(null);
 	let containerElement: HTMLDivElement | null = $state(null);
+	let minimapCanvas: HTMLCanvasElement | null = $state(null);
 
 	// State
 	let imageLoaded = $state(false);
 	let imageError = $state(false);
+	let minimapVisible = $state(false);
+	let minimapWidth = $state(0);
+	let minimapHeight = $state(0);
+	let minimapRectX = $state(0);
+	let minimapRectY = $state(0);
+	let minimapRectW = $state(0);
+	let minimapRectH = $state(0);
+	let minimapDragging = $state(false);
+	let minimapImageToken = 0;
+	let minimapImagePath: string | null = null;
+	let minimapImageEl: HTMLImageElement | null = null;
 	let prewarmRunId = 0;
 	let isPrewarming = false;
 	let prewarmQueue: string[] = [];
@@ -403,6 +418,122 @@
 		if (!renderer || !renderer.hasImage()) return;
 		renderer.render(currentScale, currentOffsetX, currentOffsetY);
 		viewerControls.updateZoom(Math.round(currentScale * 100));
+		updateMinimap();
+	}
+
+	function updateMinimap(): void {
+		if (!minimapEnabled) {
+			minimapVisible = false;
+			return;
+		}
+		if (!renderer || !renderer.hasImage() || !containerElement || !fileService.currentFile) {
+			minimapVisible = false;
+			return;
+		}
+		const { width: imgW, height: imgH } = renderer.getImageSize();
+		const { width: containerW, height: containerH } = renderer.getCanvasSize();
+		if (imgW <= 0 || imgH <= 0 || containerW <= 0 || containerH <= 0) {
+			minimapVisible = false;
+			return;
+		}
+
+		const { scale: fitScale } = calculateFitToWindow(imgW, imgH, containerW, containerH);
+		const shouldShow =
+			currentScale > fitScale * 1.02 &&
+			(imgW * currentScale > containerW + 1 || imgH * currentScale > containerH + 1);
+		minimapVisible = shouldShow;
+		if (!shouldShow || !minimapCanvas) return;
+
+		const maxSize = 160;
+		const k = Math.min(maxSize / imgW, maxSize / imgH);
+		const w = Math.max(1, Math.round(imgW * k));
+		const h = Math.max(1, Math.round(imgH * k));
+		minimapWidth = w;
+		minimapHeight = h;
+
+		const dpr = window.devicePixelRatio || 1;
+		const targetCanvasW = Math.max(1, Math.round(w * dpr));
+		const targetCanvasH = Math.max(1, Math.round(h * dpr));
+		if (minimapCanvas.width !== targetCanvasW) minimapCanvas.width = targetCanvasW;
+		if (minimapCanvas.height !== targetCanvasH) minimapCanvas.height = targetCanvasH;
+		minimapCanvas.style.width = `${w}px`;
+		minimapCanvas.style.height = `${h}px`;
+
+		const left = (0 - currentOffsetX) / currentScale;
+		const top = (0 - currentOffsetY) / currentScale;
+		const right = (containerW - currentOffsetX) / currentScale;
+		const bottom = (containerH - currentOffsetY) / currentScale;
+
+		const clLeft = Math.max(0, Math.min(imgW, left));
+		const clTop = Math.max(0, Math.min(imgH, top));
+		const clRight = Math.max(0, Math.min(imgW, right));
+		const clBottom = Math.max(0, Math.min(imgH, bottom));
+
+		const rectX = (clLeft / imgW) * w;
+		const rectY = (clTop / imgH) * h;
+		const rectW = ((clRight - clLeft) / imgW) * w;
+		const rectH = ((clBottom - clTop) / imgH) * h;
+
+		minimapRectX = rectX;
+		minimapRectY = rectY;
+		minimapRectW = Math.max(2, rectW);
+		minimapRectH = Math.max(2, rectH);
+
+		const ctx = minimapCanvas.getContext('2d');
+		if (!ctx) return;
+		ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+		ctx.clearRect(0, 0, w, h);
+		if (!minimapImageEl) return;
+
+		ctx.save();
+		ctx.translate(w / 2, h / 2);
+		const rot = ((currentRotation % 4) + 4) % 4;
+		ctx.rotate((rot * Math.PI) / 2);
+		ctx.scale(currentFlipX ? -1 : 1, currentFlipY ? -1 : 1);
+		const drawW = rot % 2 === 0 ? w : h;
+		const drawH = rot % 2 === 0 ? h : w;
+		ctx.drawImage(minimapImageEl, -drawW / 2, -drawH / 2, drawW, drawH);
+		ctx.restore();
+	}
+
+	function panFromMinimapEvent(event: PointerEvent): void {
+		if (!renderer || !renderer.hasImage() || !minimapCanvas) return;
+		const { width: imgW, height: imgH } = renderer.getImageSize();
+		const { width: containerW, height: containerH } = renderer.getCanvasSize();
+		if (imgW <= 0 || imgH <= 0 || minimapWidth <= 0 || minimapHeight <= 0) return;
+
+		const rect = minimapCanvas.getBoundingClientRect();
+		const x = Math.max(0, Math.min(minimapWidth, event.clientX - rect.left));
+		const y = Math.max(0, Math.min(minimapHeight, event.clientY - rect.top));
+		const imgX = (x / minimapWidth) * imgW;
+		const imgY = (y / minimapHeight) * imgH;
+
+		currentOffsetX = containerW / 2 - imgX * currentScale;
+		currentOffsetY = containerH / 2 - imgY * currentScale;
+		clampOffset();
+		render();
+	}
+
+	function handleMinimapPointerDown(event: PointerEvent): void {
+		if (!minimapCanvas) return;
+		minimapDragging = true;
+		minimapCanvas.setPointerCapture(event.pointerId);
+		event.preventDefault();
+		panFromMinimapEvent(event);
+	}
+
+	function handleMinimapPointerMove(event: PointerEvent): void {
+		if (!minimapDragging) return;
+		event.preventDefault();
+		panFromMinimapEvent(event);
+	}
+
+	function handleMinimapPointerUp(event: PointerEvent): void {
+		if (!minimapDragging || !minimapCanvas) return;
+		minimapDragging = false;
+		try {
+			minimapCanvas.releasePointerCapture(event.pointerId);
+		} catch {}
 	}
 
 	function cancelFullResUpgrade(): void {
@@ -1266,6 +1397,24 @@
 		const file = fileService.currentFile;
 		// Update navigation when file changes
 		if (file) {
+			const filePath = file.path;
+			if (minimapImagePath !== filePath) {
+				minimapImagePath = filePath;
+				minimapImageEl = null;
+				const token = ++minimapImageToken;
+				const src = convertFileSrc(filePath);
+				void (async () => {
+					try {
+						const img = await loadImage(src);
+						if (token !== minimapImageToken) return;
+						minimapImageEl = img;
+						updateMinimap();
+					} catch (error) {
+						logger.warn('Failed to load minimap image', 'ImageViewer', { error });
+					}
+				})();
+			}
+
 			imageMetadata.reset();
 			mouseCoords.reset();
 			mouseCoords.setOverImage(false);
@@ -1284,6 +1433,9 @@
 		} else {
 			imageMetadata.reset();
 			mouseCoords.reset();
+			minimapVisible = false;
+			minimapImageEl = null;
+			minimapImagePath = null;
 			fullResLoadedForPath = null;
 			cancelPreviewUpgrade();
 			cancelFullResUpgrade();
@@ -1291,6 +1443,12 @@
 			imageLoaded = false;
 			imageError = false;
 			lastLoadedSource = null;
+		}
+	});
+
+	$effect(() => {
+		if (minimapCanvas) {
+			updateMinimap();
 		}
 	});
 </script>
@@ -1317,6 +1475,25 @@
 					onmouseenter={handleMouseEnter}
 					onmouseleave={handleMouseLeave}
 				></canvas>
+
+				{#if minimapVisible}
+					<div class="absolute bottom-4 right-4 rounded-md border border-brand-muted/30 bg-brand-dark/80 shadow-lg p-2">
+						<div class="relative" style={`width:${minimapWidth}px;height:${minimapHeight}px;`}>
+							<canvas
+								bind:this={minimapCanvas}
+								class="absolute inset-0 touch-none"
+								onpointerdown={handleMinimapPointerDown}
+								onpointermove={handleMinimapPointerMove}
+								onpointerup={handleMinimapPointerUp}
+								onpointercancel={handleMinimapPointerUp}
+							></canvas>
+							<div
+								class="absolute border-2 border-brand-white/80 bg-brand-white/10 pointer-events-none"
+								style={`left:${minimapRectX}px;top:${minimapRectY}px;width:${minimapRectW}px;height:${minimapRectH}px;`}
+							></div>
+						</div>
+					</div>
+				{/if}
 				
 				{#if !imageLoaded}
 					<div class="absolute inset-0 flex items-center justify-center">

@@ -8,7 +8,32 @@ import { env } from "$env/dynamic/public";
 import { logger } from "$lib/utils/logger";
 
 // Supported image formats (must match fileService)
-const SUPPORTED_FORMATS = ["jpg", "jpeg", "png", "gif", "webp", "bmp", "tiff", "tif", "svg"];
+const SUPPORTED_FORMATS = [
+	"jpg",
+	"jpeg",
+	"png",
+	"gif",
+	"webp",
+	"bmp",
+	"tiff",
+	"tif",
+	"svg",
+	"heic",
+	"heif",
+	"avif",
+	"jxl",
+	"ico",
+	"icns",
+	"psd",
+	"tga",
+	"exr",
+	"hdr",
+	"pic",
+	"pct",
+	"qoi",
+	"jng",
+	"mng",
+];
 
 // === PRELOADING CONFIGURATION ===
 // Number of images to preload ahead/behind current image
@@ -178,6 +203,92 @@ function parseDimensionsFromBytes(bytes: Uint8Array): ImageDimensions | null {
 			}
 			offset = segmentStart + (segmentLength - 2);
 		}
+	}
+
+	// HEIC/HEIF (ftyp box)
+	if (
+		bytes.length >= 12 &&
+		bytes[4] === 0x66 && // 'f'
+		bytes[5] === 0x74 && // 't'
+		bytes[6] === 0x79 && // 'y'
+		bytes[7] === 0x70 // 'p'
+	) {
+		// HEIC dimension parsing is complex, return null for now
+		// Would require full ISO Base Media File Format parsing
+		return null;
+	}
+
+	// AVIF (ftyp box with avif brand)
+	if (
+		bytes.length >= 12 &&
+		bytes[4] === 0x66 && // 'f'
+		bytes[5] === 0x74 && // 't'
+		bytes[6] === 0x79 && // 'y'
+		bytes[7] === 0x70 && // 'p'
+		bytes[8] === 0x61 && // 'a'
+		bytes[9] === 0x76 && // 'v'
+		bytes[10] === 0x69 && // 'i'
+		bytes[11] === 0x66 // 'f'
+	) {
+		// AVIF dimension parsing is complex, return null for now
+		return null;
+	}
+
+	// ICO
+	if (bytes.length >= 22 && bytes[0] === 0x00 && bytes[1] === 0x00) {
+		const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+		const numImages = view.getUint16(4, true);
+		if (numImages > 0 && bytes.length >= 22) {
+			// Get dimensions from first icon entry
+			const width = bytes[6] === 0 ? 256 : bytes[6];
+			const height = bytes[7] === 0 ? 256 : bytes[7];
+			if (width > 0 && height > 0) return { width, height };
+		}
+		return null;
+	}
+
+	// TGA (simple header parsing)
+	if (bytes.length >= 18) {
+		// TGA header: ID length (1), colormap type (1), image type (1), colormap spec (5), origin (4), dimensions (4)
+		const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+		const imageType = bytes[2];
+		// Only support uncompressed and RLE true-color images
+		if (imageType === 2 || imageType === 10) {
+			const width = view.getUint16(12, true);
+			const height = view.getUint16(14, true);
+			if (width > 0 && height > 0) return { width, height };
+		}
+	}
+
+	// EXR (magic number)
+	if (
+		bytes.length >= 4 &&
+		bytes[0] === 0x76 && // 'v'
+		bytes[1] === 0x2f && // '/'
+		bytes[2] === 0x30 && // '0'
+		bytes[3] === 0x31 // '1'
+	) {
+		// EXR dimension parsing is complex, return null for now
+		return null;
+	}
+
+	// HDR (magic number)
+	if (
+		bytes.length >= 11 &&
+		bytes[0] === 0x23 && // '#'
+		bytes[1] === 0x3f && // '?'
+		bytes[2] === 0x52 && // 'R'
+		bytes[3] === 0x41 && // 'A'
+		bytes[4] === 0x44 && // 'D'
+		bytes[5] === 0x49 && // 'I'
+		bytes[6] === 0x41 && // 'A'
+		bytes[7] === 0x4e && // 'N'
+		bytes[8] === 0x43 && // 'C'
+		bytes[9] === 0x45 && // 'E'
+		bytes[10] === 0x20 // ' '
+	) {
+		// HDR is ASCII format, would require text parsing
+		return null;
 	}
 
 	return null;
@@ -478,13 +589,70 @@ class NavigationStore {
 		);
 	}
 
-	private async decodeBitmap(path: string, resizeWidth: number): Promise<ImageBitmap> {
+	private async convertSvgToBitmap(blob: Blob, resizeWidth?: number): Promise<ImageBitmap> {
+		return new Promise((resolve, reject) => {
+			const url = URL.createObjectURL(blob);
+			const img = new Image();
+			img.crossOrigin = "anonymous";
+
+			img.onload = () => {
+				try {
+					URL.revokeObjectURL(url);
+
+					// Create canvas to render SVG
+					const canvas = document.createElement("canvas");
+					const ctx = canvas.getContext("2d");
+					if (!ctx) {
+						reject(new Error("Could not get canvas context"));
+						return;
+					}
+
+					// Calculate dimensions
+					let width = img.width;
+					let height = img.height;
+
+					if (resizeWidth && width > resizeWidth) {
+						const scale = resizeWidth / width;
+						width = resizeWidth;
+						height = Math.round(height * scale);
+					}
+
+					canvas.width = width;
+					canvas.height = height;
+
+					// Draw SVG to canvas
+					ctx.drawImage(img, 0, 0, width, height);
+
+					// Convert to ImageBitmap
+					createImageBitmap(canvas).then(resolve).catch(reject);
+				} catch (error) {
+					reject(error);
+				}
+			};
+
+			img.onerror = () => {
+				URL.revokeObjectURL(url);
+				reject(new Error("Failed to load SVG image"));
+			};
+
+			img.src = url;
+		});
+	}
+
+	private async decodeBitmap(path: string, resizeWidth?: number): Promise<ImageBitmap> {
 		const url = convertFileSrc(path);
 		const res = await fetch(url);
 		if (!res.ok) {
 			throw new Error(`Failed to fetch image for bitmap decode (status ${res.status}, resizeWidth ${resizeWidth})`);
 		}
 		const blob = await res.blob();
+
+		// Check if this is an SVG file
+		const ext = this.getExtension(path).toLowerCase();
+		if (ext === "svg") {
+			return await this.convertSvgToBitmap(blob, resizeWidth);
+		}
+
 		let dims = originalDimensionsCache.get(path) ?? null;
 		if (!dims) {
 			dims = await extractOriginalDimensions(blob);
@@ -493,7 +661,7 @@ class NavigationStore {
 			}
 		}
 
-		let effectiveResizeWidth = dims ? Math.min(resizeWidth, dims.width) : resizeWidth;
+		let effectiveResizeWidth = dims ? Math.min(resizeWidth ?? Infinity, dims.width) : resizeWidth ?? Infinity;
 		const isLargeByBytes = blob.size >= previewLargeImageBytes;
 		const isLargeByMegapixels = dims ? (dims.width * dims.height) / 1_000_000 >= previewLargeImageMegapixels : false;
 		const isLargeImage = isLargeByBytes || isLargeByMegapixels;
@@ -512,6 +680,11 @@ class NavigationStore {
 		} catch {
 			return await createImageBitmap(blob);
 		}
+	}
+
+	private getExtension(path: string): string {
+		const parts = path.split(".");
+		return parts.length > 1 ? parts[parts.length - 1] : "";
 	}
 
 	/**
@@ -638,11 +811,6 @@ class NavigationStore {
 		const separator = filePath.includes("\\") ? "\\" : "/";
 		const parts = filePath.split(separator);
 		return parts[parts.length - 1] || "";
-	}
-
-	private getExtension(fileName: string): string {
-		const parts = fileName.split(".");
-		return parts.length > 1 ? parts[parts.length - 1] : "";
 	}
 
 	private joinPath(folder: string, fileName: string): string {

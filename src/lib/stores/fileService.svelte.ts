@@ -5,7 +5,32 @@ import { getNavigationStore } from "./navigationStore.svelte";
 import { logger } from "$lib/utils/logger";
 
 // Supported image formats
-export const SUPPORTED_FORMATS = ["jpg", "jpeg", "png", "gif", "webp", "bmp", "tiff", "tif", "svg"];
+export const SUPPORTED_FORMATS = [
+	"jpg",
+	"jpeg",
+	"png",
+	"gif",
+	"webp",
+	"bmp",
+	"tiff",
+	"tif",
+	"svg",
+	"heic",
+	"heif",
+	"avif",
+	"jxl",
+	"ico",
+	"icns",
+	"psd",
+	"tga",
+	"exr",
+	"hdr",
+	"pic",
+	"pct",
+	"qoi",
+	"jng",
+	"mng",
+];
 
 export const IMAGE_FILTER = {
 	name: "Images",

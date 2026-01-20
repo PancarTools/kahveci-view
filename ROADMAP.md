@@ -231,6 +231,7 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 - [x] Flip horizontal/vertical (non-destructive)
 - [x] Animated rotate/flip transitions
 - [x] Zoom button actions preserve current framing (no auto-centering)
+- [x] Zoom minimap overlay (viewport indicator + drag-to-pan)
 - [ ] Support for animated GIF/WebP playback
 - [ ] EXIF data reading and display
 - [ ] Image properties panel with metadata
@@ -255,6 +256,9 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 - [ ] Copy/Move/Delete operations with confirmation
 - [ ] Rename with validation
 - [x] File association management for "Open with" (open images on double-click)
+- [x] System file association management
+- [x] Comprehensive image format support (25+ formats including HEIC, AVIF, SVG, ICO, PSD, TGA, EXR, HDR, QOI, etc.)
+- [x] SVG rendering with Canvas-to-ImageBitmap conversion for WebGL compatibility
 - [ ] Drag & drop support for files and folders
 - [ ] Multiple file selection
 
