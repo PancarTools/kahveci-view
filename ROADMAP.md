@@ -259,6 +259,9 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 - [x] System file association management
 - [x] Comprehensive image format support (25+ formats including HEIC, AVIF, SVG, ICO, PSD, TGA, EXR, HDR, QOI, etc.)
 - [x] SVG rendering with Canvas-to-ImageBitmap conversion for WebGL compatibility
+- [x] Color picker with pixel sampling and area averaging
+- [x] Selection mode toggle (pointer/select) for color picking
+- [x] Color format cycling (RGB, HSL, HSV, OKLab, OKLch)
 - [ ] Drag & drop support for files and folders
 - [ ] Multiple file selection
 

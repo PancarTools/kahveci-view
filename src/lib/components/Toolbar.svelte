@@ -2,10 +2,11 @@
 	import { getFileService } from '$lib/stores/fileService.svelte';
 	import { getViewerControls } from '$lib/stores/viewerControls.svelte';
 	import { getNavigationStore } from '$lib/stores/navigationStore.svelte';
+	import { getColorPicker } from '$lib/stores/colorPicker.svelte';
 	import { logger } from '$lib/utils/logger';
 	import { 
 		FolderOpen, Save, Printer, FolderTree,
-		Undo, Redo, MousePointer, Copy, Clipboard, Scissors, Crop,
+		Undo, Redo, MousePointer, SquareDashed, Copy, Clipboard, Scissors, Crop,
 		RotateCcw, RotateCw,
 		FlipHorizontal, FlipVertical,
 		ZoomIn, ZoomOut, Maximize, Square,
@@ -16,6 +17,7 @@
 	const fileService = getFileService();
 	const viewerControls = getViewerControls();
 	const navStore = getNavigationStore();
+	const colorPicker = getColorPicker();
 
 	async function handleOpenImage() {
 		logger.debug("Toolbar open image button clicked", "TOOLBAR");
@@ -28,7 +30,11 @@
 	function handleOpenFolder() { logger.debug("Open folder clicked (mock)", "TOOLBAR"); }
 	function handleUndo() { logger.debug("Undo clicked (mock)", "TOOLBAR"); }
 	function handleRedo() { logger.debug("Redo clicked (mock)", "TOOLBAR"); }
-	function handleSelectMode() { logger.debug("Select mode clicked (mock)", "TOOLBAR"); }
+	function handleSelectMode() {
+		colorPicker.toggleSelectionMode();
+		const mode = colorPicker.selectionMode;
+		logger.debug(`Selection mode toggled to: ${mode}`, "TOOLBAR");
+	}
 	function handleCopy() { logger.debug("Copy clicked (mock)", "TOOLBAR"); }
 	function handlePaste() { logger.debug("Paste clicked (mock)", "TOOLBAR"); }
 	function handleCut() { logger.debug("Cut clicked (mock)", "TOOLBAR"); }
@@ -245,11 +251,15 @@
 		</button>
 
 		<button 
-			class={buttonClass}
+			class={`${buttonClass} ${colorPicker.selectionMode === 'select' ? 'bg-brand-light text-brand-primary' : ''}`}
 			onclick={handleSelectMode}
-			title="Select Mode"
+			title={`Toggle Selection Mode (Current: ${colorPicker.selectionMode})`}
 		>
-			<MousePointer class={iconClass} />
+			{#if colorPicker.selectionMode === 'select'}
+				<SquareDashed class={iconClass} />
+			{:else}
+				<MousePointer class={iconClass} />
+			{/if}
 		</button>
 
 		<button 

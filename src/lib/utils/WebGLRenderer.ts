@@ -115,7 +115,7 @@ export class WebGLRenderer {
 			alpha: true,
 			antialias: false,
 			premultipliedAlpha: false,
-			preserveDrawingBuffer: false,
+			preserveDrawingBuffer: true, // Required for readPixels() to work reliably
 		});
 
 		if (!this.webGLCtx) {
@@ -274,7 +274,7 @@ export class WebGLRenderer {
 				forceUpload,
 				preserveImageSize,
 				cacheSize: this.textureCache.size,
-			}
+			},
 		);
 		return true;
 	}
@@ -326,7 +326,7 @@ export class WebGLRenderer {
 				height: size?.height ?? null,
 				prewarm: true,
 				cacheSize: this.textureCache.size,
-			}
+			},
 		);
 	}
 
@@ -412,6 +412,37 @@ export class WebGLRenderer {
 	}
 
 	/**
+	 * Sample a single pixel from the rendered framebuffer
+	 */
+	samplePixel(x: number, y: number): { r: number; g: number; b: number; a: number } | null {
+		if (!this.webGLCtx) return null;
+
+		const gl = this.webGLCtx;
+		const pixelData = new Uint8Array(4);
+
+		try {
+			gl.flush();
+			gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
+
+			const error = gl.getError();
+			if (error !== gl.NO_ERROR) {
+				console.warn(`[WebGLRenderer] readPixels error: ${error}`);
+				return null;
+			}
+
+			return {
+				r: pixelData[0],
+				g: pixelData[1],
+				b: pixelData[2],
+				a: pixelData[3],
+			};
+		} catch (e) {
+			console.error("[WebGLRenderer] Failed to sample pixel:", e);
+			return null;
+		}
+	}
+
+	/**
 	 * Check if renderer is ready
 	 */
 	isReady(): boolean {
@@ -480,7 +511,7 @@ export class WebGLRenderer {
 	private createProgram(
 		gl: WebGLRenderingContext,
 		vertexShader: WebGLShader,
-		fragmentShader: WebGLShader
+		fragmentShader: WebGLShader,
 	): WebGLProgram | null {
 		const program = gl.createProgram();
 		if (!program) return null;

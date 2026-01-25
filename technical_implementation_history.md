@@ -46,12 +46,10 @@ Kahveci View is a modern image viewer application built with Tauri 2, Svelte 5, 
 **Architectural Decisions Made**:
 
 1. **File Service Architecture**: Created centralized file service using Svelte 5 runes
-
    - Pattern: `fileService.svelte.ts` with reactive state management
    - Reasoning: Centralized file operations with reactive updates across components
 
 2. **Error Handling Strategy**: Implemented comprehensive validation system
-
    - Path validation for security (injection prevention)
    - Format validation with extensible format support
    - Platform-specific validations (Windows reserved names, etc.)
@@ -87,19 +85,16 @@ Kahveci View is a modern image viewer application built with Tauri 2, Svelte 5, 
 **Architectural Decisions Made**:
 
 1. **Asset Protocol Configuration**: Enabled Tauri asset protocol for local file serving
-
    - Added assetProtocol configuration to tauri.conf.json
    - Reasoning: Required for browser to access local image files securely
 
 2. **Image Component Architecture**: Created comprehensive ImageViewer component
-
    - Reactive state management for loading, error, and display states
    - Event-driven image loading with comprehensive error handling
    - Responsive design with proper image scaling
    - Reasoning: Separation of concerns with robust error handling
 
 3. **Logging System Enhancement**: Implemented advanced debugging system
-
    - Custom logger utility with debug level controls
    - Runtime debug toggling via localStorage
    - Context-aware logging with performance utilities
@@ -107,7 +102,6 @@ Kahveci View is a modern image viewer application built with Tauri 2, Svelte 5, 
    - Reasoning: Essential for debugging complex file loading issues
 
 4. **Performance Instrumentation (December 11, 2025)**
-
    - Added ISO-style timestamps to all Rust-side logs via the `logger` Tauri command for precise ordering in the Tauri console
    - Integrated cross-layer PERF logging using the shared `logger` utility in:
      - `FileService` (`openFile`, `openFileByPath`) for end-to-end file open timings
@@ -269,7 +263,6 @@ src-tauri/
 **Architectural Decisions Made**:
 
 1. **Major UI Architecture Refactor**: Transitioned from sidebar to modern app layout
-
    - **Decision**: Moved from two-column layout to three-tier layout (Toolbar + Content + StatusBar)
    - **Rationale**: Modern app design patterns, better space utilization, professional appearance
    - **Implementation**: Created separate components for each tier with clear responsibilities
@@ -285,7 +278,6 @@ src-tauri/
    ```
 
 3. **Emoji-First UI Design**: Used emoji icons instead of SVG dependencies
-
    - **Decision**: Emoji icons for initial UI elements
    - **Rationale**: No external dependencies, universal support, quick prototyping
    - **Examples**: 📁 (Open), 🖼️ (Image), ✨ (Visual enhancement)
@@ -331,7 +323,6 @@ src-tauri/
    ```
 
 2. **Responsive Design System**:
-
    - CSS Grid for layout structure
    - Flexible height allocation (auto + 1fr + auto)
    - Dark mode support with CSS custom properties
@@ -345,7 +336,6 @@ src-tauri/
 **Problems Encountered & Solutions**:
 
 1. **HTML Structure Compilation Error**:
-
    - **Issue**: Corrupted HTML in ImageViewer.svelte with mismatched div tags
    - **Root Cause**: Duplicate JavaScript event handlers outside of img tag
    - **Solution**: Cleaned up corrupted HTML structure and removed duplicate code
@@ -379,19 +369,16 @@ src-tauri/
 **Architectural Decisions Made**:
 
 1. **Tailwind CSS v4.1 Adoption**
-
    - Replaced custom CSS with utility-first approach
    - Integrated @tailwindcss/vite plugin for optimal SvelteKit compatibility
    - Configured with semantic design tokens for maintainability
 
 2. **4-Color Design System**
-
    - Simplified to user-specified minimal palette: #101010 (bg), #141414 (surface), #F5F5F5 (text), #EE3B3E (accent)
    - Created semantic naming convention: `bg`, `surface`, `text`, `accent`
    - Rejected complex design system in favor of minimal, focused approach
 
 3. **Component Migration Strategy**
-
    - Incremental migration starting with StatusBar for validation
    - Multi-line class formatting for better readability and maintainability
    - Preserved all functionality and responsive behavior during migration
@@ -442,12 +429,10 @@ After completing the design system migration, reorganized the development roadma
 **Improvements Made**:
 
 1. **Phase Restructuring**:
-
    - Restructured from scattered phases to 8 logical development phases
    - Clear progression from foundation → core features → advanced features → distribution
 
 2. **Phase Organization**:
-
    - **Phase 1-2**: Foundation & Core Viewing + Design System (COMPLETED)
    - **Phase 3**: Advanced Viewing & Navigation (zoom, full-screen, navigation)
    - **Phase 4**: File Management (operations, metadata, batch processing)
@@ -487,20 +472,17 @@ The initial emoji-based icons were functional but not professional-looking. Migr
 **Implementation Details**:
 
 1. **Icon Library Selection**:
-
    - Initially attempted UIW Icons but discovered React dependency issues
    - Switched to Lucide Svelte (@lucide/svelte) for proper Svelte compatibility
    - Reasoning: Lucide provides professional, lightweight SVG icons with excellent Svelte integration
 
 2. **Icon Organization**:
-
    - Created centralized icon export file at `src/lib/icons/index.ts`
    - Organized icons by feature/phase for easy maintenance
    - Phase 1-2: File operations, status indicators
    - Phase 3+: Navigation, zoom, manipulation tools
 
 3. **Component Updates**:
-
    - **Toolbar**: Replaced 📁 with FolderOpen icon
    - **StatusBar**: Replaced 📂/📄/✅/❌ with Folder/Image/CheckCircle/XCircle
    - **DefaultState**: Replaced 🖼️/📁/⌨️ with Image/FolderOpen/Keyboard
@@ -569,20 +551,17 @@ Moved from basic 4-color system to sophisticated, eye-pleasing design using OKLC
 **Visual Improvements**:
 
 1. **Subtle Component Separation**:
-
    - Removed harsh white lines and high contrast borders
    - Used gentle elevation with `border-border-muted` for separation
    - Implemented layered background system (bg-dark → bg → bg-light)
 
 2. **Enhanced Typography Hierarchy**:
-
    - `text` for primary content
    - `text-muted` for secondary information
    - `primary`/`secondary` for accent elements
    - Better visual hierarchy with proper contrast ratios
 
 3. **Refined Spacing and Proportions**:
-
    - Increased component padding for better breathing room
    - Consistent spacing scale throughout application
    - Improved icon sizes and alignment
@@ -960,13 +939,11 @@ const macOSMaximizeButtonClass = `bg-traffic-green hover:bg-traffic-green-hover 
 **Architectural Decisions Made**:
 
 1. **Coordinate System Choice**: Implemented original image pixel coordinate tracking instead of display coordinates
-
    - **Decision**: Scale display coordinates to original image dimensions using natural width/height
    - **Rationale**: Professional image viewers display actual pixel coordinates for precise work
    - **Implementation**: `scaleX/Y = naturalDimensions / displayDimensions` with rounded coordinate conversion
 
 2. **Shared Image Metadata Store**: Created centralized image metadata management
-
    - **Architecture**: New `imageMetadata.svelte.ts` store using Svelte 5 runes
    - **Purpose**: Share real-time image dimensions between ImageViewer and StatusBar components
    - **Benefits**: Eliminated hardcoded mock data, automatic aspect ratio and megapixel calculation
@@ -1069,7 +1046,6 @@ const originalY = Math.round(y * scaleY);
 **Architectural Decisions Made**:
 
 1. **Canvas Rendering Architecture**: Migrated from img element to canvas for GPU acceleration
-
    - **Canvas 2D Context**: High-quality rendering with configurable image smoothing
    - **Device Pixel Ratio**: Support for crisp display on high-DPI screens
    - **Performance Optimizations**: Alpha disabled, desynchronized rendering for better GPU utilization
@@ -1084,7 +1060,6 @@ const originalY = Math.round(y * scaleY);
    ```
 
 3. **Coordinate System Preservation**: Maintained accurate coordinate tracking with canvas
-
    - Mouse coordinates still map to original image pixels
    - Canvas display coordinates converted to image coordinates
    - Preserved professional coordinate accuracy
@@ -1135,14 +1110,12 @@ ctx.scale(devicePixelRatio, devicePixelRatio);
 **Files Modified**:
 
 - `src/lib/components/ImageViewer.svelte`: Complete canvas migration
-
   - Updated reactive variables (imageElement → canvasElement + canvasContext)
   - Replaced image loading handlers with canvas rendering functions
   - Modified mouse coordinate tracking for canvas element
   - Implemented canvas initialization and resize effects
 
 - `src/lib/stores/fileService.svelte.ts`: Added openFileByPath method
-
   - New method for programmatic file loading by path
   - Maintains same validation and error handling as dialog-based loading
 
@@ -1248,7 +1221,6 @@ if (scaledWidth <= containerWidth) {
 **Component Updates**:
 
 1. **ImageViewer.svelte**:
-
    - Integrated zoom store for scale/offset transforms
    - Added wheel event handler for zoom-to-cursor
    - Added mouse drag handlers for panning
@@ -1257,7 +1229,6 @@ if (scaledWidth <= containerWidth) {
    - Dynamic cursor feedback (grab/grabbing/crosshair)
 
 2. **Toolbar.svelte**:
-
    - Added zoom control buttons (Zoom In, Zoom Out, Fit, 100%)
    - Integrated zoom store for button state (disabled when at limits)
    - Added Lucide icons (ZoomIn, ZoomOut, Maximize, Square)
@@ -1625,7 +1596,6 @@ async openFileByPath(filePath: string, skipFolderScan = false) {
 **Architectural Decisions Made**:
 
 1. **Step-by-Step Implementation Strategy**: Instead of attempting full feature parity immediately, implemented incrementally:
-
    - Step 1: Basic static image rendering
    - Step 2: Add zoom (scale uniform)
    - Step 3: Add pan (offset uniform)
@@ -1633,7 +1603,6 @@ async openFileByPath(filePath: string, skipFolderScan = false) {
    - Step 5: Add smooth animations
 
 2. **Standalone WebGLRenderer Class**: Created imperative WebGL class separate from Svelte reactivity
-
    - **Rationale**: WebGL context lifecycle doesn't mix well with Svelte's reactive system
    - **Pattern**: Pure imperative class, ImageViewer calls methods directly
    - **Benefits**: No reactive loops, predictable initialization, easier debugging
@@ -1861,6 +1830,14 @@ class ViewerControls {
 - Added a `PUBLIC_MINIMAP_ENABLED` feature flag (defaults to true) to allow disabling the minimap via environment configuration.
 - Expanded image format support from 9 to 25+ formats including HEIC/HEIF, AVIF, JPEG XL, SVG, ICO, ICNS, PSD, TGA, OpenEXR, HDR, PICT, QOI, JNG, and MNG, with corresponding OS file associations and dimension parsing where feasible.
 - Fixed SVG rendering by implementing `convertSvgToBitmap()` function that renders SVG to Canvas before converting to ImageBitmap for WebGL texture upload, resolving browser limitations with direct SVG-to-ImageBitmap conversion.
+- Implemented comprehensive color picker feature with dual modes: pointer mode samples single pixel color at cursor position, select mode allows drag-to-select rectangular areas and computes average color of selection.
+- Created `colorConverter.ts` utility with color space conversions (RGB ↔ HSL, HSV, OKLab, OKLch) and formatting functions for multiple color representations.
+- Created `colorPicker.svelte.ts` store to manage color picker state including current color, format, selection mode, and selection rectangle geometry.
+- Implemented pixel sampling via WebGL `readPixels()` for accurate color extraction from rendered canvas, with proper coordinate transformation accounting for zoom/pan/rotation/flip transforms.
+- Implemented area color averaging by sampling multiple pixels within selection rectangle and computing mean RGB values.
+- Added selection mode toggle to Toolbar with visual feedback (highlighted when in select mode), allowing users to switch between pointer navigation and area selection.
+- Integrated color display into StatusBar showing color swatch and formatted value, with click-to-toggle format cycling through RGB → HSL → HSV → OKLab → OKLch → RGB.
+- Added selection rectangle overlay rendering with semi-transparent fill, border, and corner handles for visual feedback during area selection.
 - Effect: Navigating back to or forward into recently viewed large images no longer pays the full `texImage2D` cost on first visible visit, significantly reducing perceived latency for back/forward navigation.
 
 ---

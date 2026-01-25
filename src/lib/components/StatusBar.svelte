@@ -4,6 +4,8 @@
 	import { getImageMetadata } from '$lib/stores/imageMetadata.svelte';
 	import { getViewerControls } from '$lib/stores/viewerControls.svelte';
 	import { getNavigationStore } from '$lib/stores/navigationStore.svelte';
+	import { getColorPicker } from '$lib/stores/colorPicker.svelte';
+	import { formatColor, rgbToHex } from '$lib/utils/colorConverter';
 	import { CheckCircle, XCircle, Loader2 } from '$lib/icons';
 
 	const fileService = getFileService();
@@ -11,10 +13,27 @@
 	const imageMetadata = getImageMetadata();
 	const viewerControls = getViewerControls();
 	const navStore = getNavigationStore();
+	const colorPicker = getColorPicker();
 
 	function formatCoordinates(): string {
 		if (!mouseCoords.isOverImage) return "—";
 		return `${mouseCoords.x}, ${mouseCoords.y}`;
+	}
+
+	function getColorDisplay(): string {
+		if (!colorPicker.currentColor) return "—";
+		return formatColor(colorPicker.currentColor, colorPicker.colorFormat);
+	}
+
+	function getColorSwatchStyle(): string {
+		if (!colorPicker.currentColor) return "background-color: rgb(100, 100, 100);";
+		const { r, g, b, a } = colorPicker.currentColor;
+		const alpha = a !== undefined ? a / 255 : 1;
+		return `background-color: rgba(${r}, ${g}, ${b}, ${alpha});`;
+	}
+
+	function handleColorClick() {
+		colorPicker.toggleFormat();
 	}
 </script>
 
@@ -70,9 +89,24 @@
 		{/if}
 	</div>
 
-	<!-- Right: Zoom & Mouse Coordinates -->
+	<!-- Right: Color, Zoom & Mouse Coordinates -->
 	<div class="flex items-center gap-3 flex-none">
+		<!-- Color Picker Display -->
+		<button
+			type="button"
+			class="flex items-center gap-2 px-2 py-1 rounded hover:bg-brand-subtle/50 transition-colors cursor-pointer"
+			onclick={handleColorClick}
+			title="Click to toggle color format"
+		>
+			<div
+				class="w-4 h-4 rounded border border-brand-muted/50"
+				style={getColorSwatchStyle()}
+			></div>
+			<span class="font-mono text-brand-white text-xs min-w-[120px]">{getColorDisplay()}</span>
+		</button>
+		
 		{#if fileService.currentFile && imageMetadata.isLoaded}
+			<span class="text-brand-muted/40">•</span>
 			<span class="font-mono text-brand-primary text-xs font-medium min-w-10 text-right">{viewerControls.zoomPercentage}%</span>
 			<span class="text-brand-muted/40">•</span>
 			{#if viewerControls.fullResLoading}

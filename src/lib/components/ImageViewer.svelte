@@ -5,6 +5,7 @@
 	import { getImageMetadata } from '$lib/stores/imageMetadata.svelte';
 	import { getMouseCoordinates } from '$lib/stores/mouseCoordinates.svelte';
 	import { getNavigationStore } from '$lib/stores/navigationStore.svelte';
+	import { getColorPicker } from '$lib/stores/colorPicker.svelte';
 	import { env } from '$env/dynamic/public';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import { WebGLRenderer } from '$lib/utils/WebGLRenderer';
@@ -16,6 +17,7 @@
 	const imageMetadata = getImageMetadata();
 	const mouseCoords = getMouseCoordinates();
 	const navStore = getNavigationStore();
+	const colorPicker = getColorPicker();
 
 	// Feature flags
 	const minimapEnabled = env.PUBLIC_MINIMAP_ENABLED !== "false";
@@ -399,6 +401,36 @@
 		});
 	}
 
+	// Sample pixel color from canvas at image coordinates
+	function samplePixelColor(imageX: number, imageY: number) {
+		if (!renderer) return null;
+
+		const dpr = window.devicePixelRatio || 1;
+		const { width: canvasW, height: canvasH } = renderer.getCanvasSize();
+
+		// Convert image coordinates to canvas coordinates
+		const canvasX = imageX * currentScale + currentOffsetX;
+		const canvasY = imageY * currentScale + currentOffsetY;
+
+		// Check if within canvas bounds (CSS pixels) - clamp to valid range
+		const clampedCanvasX = Math.max(0, Math.min(canvasX, canvasW - 1));
+		const clampedCanvasY = Math.max(0, Math.min(canvasY, canvasH - 1));
+
+		// Convert to device pixel coordinates for WebGL readPixels
+		const glX = Math.floor(clampedCanvasX * dpr);
+		const glY = Math.floor((canvasH - clampedCanvasY - 1) * dpr);
+
+		const color = renderer.samplePixel(glX, glY);
+		return color;
+	}
+
+	// Sample average color from rectangular area
+	// TODO: Implement area color averaging in WebGLRenderer.sampleArea()
+	function sampleAreaColor(x1: number, y1: number, x2: number, y2: number) {
+		// Area averaging not yet implemented
+		return null;
+	}
+
 	// Calculate "fit to window" scale and centered position
 	function calculateFitToWindow(imgWidth: number, imgHeight: number, containerWidth: number, containerHeight: number) {
 		const scaleX = containerWidth / imgWidth;
@@ -419,6 +451,45 @@
 		renderer.render(currentScale, currentOffsetX, currentOffsetY);
 		viewerControls.updateZoom(Math.round(currentScale * 100));
 		updateMinimap();
+		
+		// Draw selection rectangle if in select mode
+		if (colorPicker.selectionMode === 'select' && canvasElement) {
+			drawSelectionRectangle();
+		}
+	}
+
+	// Draw selection rectangle overlay on canvas
+	function drawSelectionRectangle() {
+		if (!canvasElement) return;
+		
+		const ctx = canvasElement.getContext('2d');
+		if (!ctx) return;
+		
+		const rect = colorPicker.selectionRect;
+		if (rect.isEmpty) return;
+		
+		// Convert image coordinates to canvas coordinates
+		const x = rect.x * currentScale + currentOffsetX;
+		const y = rect.y * currentScale + currentOffsetY;
+		const w = rect.width * currentScale;
+		const h = rect.height * currentScale;
+		
+		// Draw semi-transparent overlay
+		ctx.fillStyle = 'rgba(100, 150, 255, 0.1)';
+		ctx.fillRect(x, y, w, h);
+		
+		// Draw border
+		ctx.strokeStyle = 'rgba(100, 150, 255, 0.8)';
+		ctx.lineWidth = 2;
+		ctx.strokeRect(x, y, w, h);
+		
+		// Draw corner handles
+		const handleSize = 6;
+		ctx.fillStyle = 'rgba(100, 150, 255, 1)';
+		ctx.fillRect(x - handleSize / 2, y - handleSize / 2, handleSize, handleSize);
+		ctx.fillRect(x + w - handleSize / 2, y - handleSize / 2, handleSize, handleSize);
+		ctx.fillRect(x - handleSize / 2, y + h - handleSize / 2, handleSize, handleSize);
+		ctx.fillRect(x + w - handleSize / 2, y + h - handleSize / 2, handleSize, handleSize);
 	}
 
 	function updateMinimap(): void {
@@ -853,14 +924,32 @@
 		}
 	}
 
-	// Mouse drag handlers for panning
+	// Mouse drag handlers for panning or selection
 	function handleMouseDown(event: MouseEvent) {
 		if (!renderer || !renderer.hasImage()) return;
 		if (event.button !== 0) return; // Left click only
 		
-		isDragging = true;
-		lastMouseX = event.clientX;
-		lastMouseY = event.clientY;
+		if (colorPicker.selectionMode === 'select') {
+			// Start selection
+			const rect = canvasElement?.getBoundingClientRect();
+			if (!rect) return;
+			
+			const canvasX = event.clientX - rect.left;
+			const canvasY = event.clientY - rect.top;
+			
+			// Convert to image coordinates
+			const imageX = (canvasX - currentOffsetX) / currentScale;
+			const imageY = (canvasY - currentOffsetY) / currentScale;
+			
+			colorPicker.startSelection(imageX, imageY);
+			isDragging = true;
+		} else {
+			// Normal pan mode
+			isDragging = true;
+			lastMouseX = event.clientX;
+			lastMouseY = event.clientY;
+		}
+		
 		event.preventDefault();
 	}
 
@@ -868,8 +957,22 @@
 		// Always update coordinates
 		updateMouseCoords(event);
 
-		// Handle panning if dragging
-		if (isDragging && renderer) {
+		if (colorPicker.selectionMode === 'select' && isDragging) {
+			// Update selection
+			const rect = canvasElement?.getBoundingClientRect();
+			if (!rect) return;
+			
+			const canvasX = event.clientX - rect.left;
+			const canvasY = event.clientY - rect.top;
+			
+			// Convert to image coordinates
+			const imageX = (canvasX - currentOffsetX) / currentScale;
+			const imageY = (canvasY - currentOffsetY) / currentScale;
+			
+			colorPicker.updateSelection(imageX, imageY);
+			render();
+		} else if (isDragging && renderer) {
+			// Normal pan mode
 			const deltaX = event.clientX - lastMouseX;
 			const deltaY = event.clientY - lastMouseY;
 			
@@ -888,6 +991,11 @@
 	}
 
 	function handleMouseUp() {
+		if (colorPicker.selectionMode === 'select' && isDragging) {
+			// End selection - TODO: implement area color averaging
+			colorPicker.endSelection();
+			render();
+		}
 		isDragging = false;
 	}
 
@@ -895,6 +1003,10 @@
 		isDragging = false;
 		mouseCoords.setOverImage(false);
 		mouseCoords.reset();
+		if (colorPicker.selectionMode === 'select') {
+			colorPicker.clearSelection();
+			render();
+		}
 	}
 
 	// Track mouse position for coordinate display
@@ -954,6 +1066,15 @@
 			);
 			mouseCoords.updatePosition(originalX, originalY);
 			mouseCoords.setOverImage(true);
+			
+			// Sample pixel color in pointer mode
+			if (colorPicker.selectionMode === 'pointer') {
+				const color = samplePixelColor(originalX, originalY);
+				if (color) {
+					colorPicker.setColor(color);
+					logger.debug(`Sampled color at (${originalX}, ${originalY}): RGB(${color.r}, ${color.g}, ${color.b})`, 'ColorPicker');
+				}
+			}
 		} else {
 			mouseCoords.setOverImage(false);
 		}
@@ -1466,7 +1587,8 @@
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<canvas
 					bind:this={canvasElement}
-					class="w-full h-full cursor-grab"
+					class="w-full h-full"
+					class:cursor-crosshair={colorPicker.selectionMode === 'select'}
 					class:cursor-grabbing={isDragging}
 					onwheel={handleWheel}
 					onmousedown={handleMouseDown}

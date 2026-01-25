@@ -14,6 +14,7 @@ export { FolderTree } from "@lucide/svelte";
 export { Undo } from "@lucide/svelte";
 export { Redo } from "@lucide/svelte";
 export { MousePointer } from "@lucide/svelte";
+export { SquareDashed } from "@lucide/svelte";
 export { Copy } from "@lucide/svelte";
 export { Clipboard } from "@lucide/svelte";
 export { Scissors } from "@lucide/svelte";
