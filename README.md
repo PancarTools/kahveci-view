@@ -1,5 +1,7 @@
 # Kahveci View
 
+![Kahveci View Demo Screenshot](/static/kahveci-view-demo.jpg)
+
 > Modern image viewer and editor - an IrfanView alternative built with Tauri 2 and Svelte 5
 
 A fast, lightweight, cross-platform image viewer that combines the simplicity of IrfanView with modern UI/UX and extensibility.
