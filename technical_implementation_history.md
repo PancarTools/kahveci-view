@@ -1840,8 +1840,128 @@ class ViewerControls {
 - Added selection rectangle overlay rendering with semi-transparent fill, border, and corner handles for visual feedback during area selection.
 - Effect: Navigating back to or forward into recently viewed large images no longer pays the full `texImage2D` cost on first visible visit, significantly reducing perceived latency for back/forward navigation.
 
+### Phase 3.4: Advanced Selection System Implementation (Completed ✅)
+
+**Date**: January 26, 2026  
+**Duration**: ~4 hours  
+**Context**: Professional selection system with interactive resize/move capabilities and improved UX
+
+**Major Enhancements Implemented**:
+
+**1. Interactive Selection Rectangle System**
+
+- Replaced canvas-based selection drawing with overlay div approach for better performance
+- Implemented macOS Preview-style dashed white border with semi-transparent fill
+- Added corner handle indicators (6px squares) for resize interaction points
+- Created comprehensive selection state management using Svelte 5 runes
+
+**2. Advanced Resize and Move Operations**
+
+- Implemented corner-based resizing from all four corners (NW, NE, SW, SE)
+- Added move operation when dragging inside selection area
+- Proper cursor feedback system:
+  - Crosshair cursor for new selections
+  - Move cursor when hovering inside selection
+  - Resize cursors (nwse-resize, nesw-resize) for corner handles
+- Real-time coordinate transformation between canvas and image space
+
+**3. Selection Bounds Management**
+
+- Implemented comprehensive bounds checking to prevent selections outside image boundaries
+- Added `clampToImageBounds()` function for coordinate validation
+- Smart resize logic that maintains minimum 1px size and prevents invalid selections
+- Move operations keep entire selection within image bounds
+
+**4. Enhanced User Experience**
+
+- Removed automatic selection clearing on mouse leave - selections persist when using toolbar
+- Added Escape key support for explicit selection clearing
+- Selection persists during toolbar interactions and mode switches
+- New selection automatically replaces previous selection (standard behavior)
+
+**5. Toolbar Mode Separation**
+
+- Replaced single toggle button with separate Pointer and Select mode buttons
+- Clear visual feedback with only active mode highlighted
+- Improved UX with explicit mode selection rather than ambiguous toggle
+- Added descriptive tooltips for each mode's purpose
+
+**6. Technical Architecture Improvements**
+
+- Created `SelectionHandle` type system for type-safe handle detection
+- Implemented `getSelectionHandle()` function for precise interaction detection
+- Added `updateSelectionCursor()` for dynamic cursor management
+- Comprehensive logging system for debugging selection operations
+- Proper event handling with drag state management
+
+**Key Files Modified**:
+
+- `src/lib/components/ImageViewer.svelte`:
+  - Added selection overlay div with dashed border styling
+  - Implemented comprehensive mouse event handling for selection operations
+  - Added bounds checking and coordinate transformation functions
+  - Enhanced cursor management system
+- `src/lib/components/Toolbar.svelte`:
+  - Replaced toggle button with separate mode buttons
+  - Added `handlePointerMode()` and `handleSelectMode()` functions
+  - Updated button styling and tooltips
+- `src/lib/icons/index.ts`:
+  - Added `SquareDashed` icon export for selection mode
+
+**Technical Implementation Details**:
+
+**Selection State Management**:
+
+```typescript
+type SelectionHandle = "nw" | "ne" | "sw" | "se" | "move" | null;
+let activeHandle = $state<SelectionHandle>(null);
+let dragStartX = 0;
+let dragStartY = 0;
+let selectionStartX = 0;
+let selectionStartY = 0;
+let selectionStartW = 0;
+let selectionStartH = 0;
+```
+
+**Bounds Checking Logic**:
+
+```typescript
+function clampToImageBounds(x: number, y: number): { x: number; y: number } {
+	if (!imageMetadata.isLoaded) return { x, y };
+
+	const clampedX = Math.max(0, Math.min(x, imageMetadata.naturalWidth));
+	const clampedY = Math.max(0, Math.min(y, imageMetadata.naturalHeight));
+
+	return { x: clampedX, y: clampedY };
+}
+```
+
+**Resize Operation Logic**:
+
+- Each corner handle moves independently while opposite corner stays fixed
+- Minimum size enforcement (1px) prevents selection disappearance
+- Image boundary clamping ensures selections stay within valid area
+- Proper coordinate transformation maintains accuracy across zoom levels
+
+**User Experience Improvements**:
+
+- **Before**: Confusing toggle button, selections cleared on mouse leave, no resize capability
+- **After**: Clear mode separation, persistent selections, full resize/move interaction
+- **Visual Consistency**: macOS Preview-style selection appearance and behavior
+- **Professional Feel**: Smooth interactions, proper cursors, intuitive controls
+
+**Performance Optimizations**:
+
+- Overlay div approach reduces canvas redraw overhead
+- Efficient coordinate transformation calculations
+- Minimal state updates through Svelte 5 reactivity
+- Optimized event handling with proper drag state management
+
+**Next Steps Ready**:
+Selection system foundation complete and ready for area color averaging implementation and advanced editing features.
+
 ---
 
-_Last Updated: December 18, 2025_  
-_Current Phase: 3.2.5 - WebGL Rendering Migration (COMPLETED ✅)_  
+_Last Updated: January 26, 2026_  
+_Current Phase: 3.4 - Advanced Selection System (COMPLETED ✅)_  
 _Next Milestone: Phase 3.3 - Full-Screen & Presentation_

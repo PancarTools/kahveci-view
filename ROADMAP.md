@@ -10,7 +10,7 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 
 **Phase 1: COMPLETED ✅ | Phase 2: COMPLETED ✅ | Phase 3: IN PROGRESS 🚀**
 
-**Latest Achievement**: WebGL rendering migration with GPU acceleration, full feature parity, and seamless integration with toolbar, status bar, and navigation systems
+**Latest Achievement**: Advanced selection system with interactive resize/move, separate mode buttons, and professional color picker with pixel sampling
 
 ---
 
@@ -232,9 +232,17 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 - [x] Animated rotate/flip transitions
 - [x] Zoom button actions preserve current framing (no auto-centering)
 - [x] Zoom minimap overlay (viewport indicator + drag-to-pan)
+- [x] Advanced color picker with pixel sampling
+- [x] Interactive selection system with resize/move capabilities
+- [x] Separate toolbar buttons for pointer and select modes
+- [x] macOS Preview-style dashed selection rectangle
+- [x] Corner resize handles with proper cursor feedback
+- [x] Selection bounds checking to prevent out-of-bounds selections
+- [x] Escape key support for explicit selection clearing
 - [ ] Support for animated GIF/WebP playback
 - [ ] EXIF data reading and display
 - [ ] Image properties panel with metadata
+- [ ] Area color averaging for selected regions
 
 **Deliverable**: Feature-rich viewer with professional navigation
 
@@ -486,9 +494,9 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 
 ## 🚀 Next Steps
 
-### **Current Status**: Phase 3.2.5 Complete ✅ - WebGL Rendering Migration
+### **Current Status**: Phase 3.4 Advanced Selection System Complete ✅
 
-**Last Achievement**: WebGL GPU-accelerated rendering with full feature parity, smooth animations, zoom-to-cursor, and complete integration with existing systems
+**Last Achievement**: Professional selection system with interactive resize/move, separate toolbar mode buttons, macOS Preview-style dashed selection, and advanced color picker
 
 ### **Immediate Next Task (3.3)**: Full-Screen & Presentation
 
@@ -508,9 +516,9 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 
 ### **Next Sprint Goal**: Complete Phase 3 (Advanced Viewing & Navigation)
 
-**Outcome**: Feature-complete image viewer with navigation and presentation modes
+**Outcome**: Feature-complete image viewer with navigation, selection, and presentation modes
 
 ---
 
-_Last Updated: December 5, 2025_  
-_Current Phase: Phase 3 - Advanced Viewing & Navigation (3.1, 3.2, 3.2.5 Complete) 🚀_
+_Last Updated: January 26, 2026_  
+_Current Phase: Phase 3 - Advanced Viewing & Navigation (3.1, 3.2, 3.2.5, 3.4 Complete) 🚀_

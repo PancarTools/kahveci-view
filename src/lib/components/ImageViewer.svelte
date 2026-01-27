@@ -47,6 +47,22 @@
 	const prewarmQueued = new Set<string>();
 	const prewarmAttempts = new Map<string, number>();
 
+	// Selection overlay state
+	let selectionOverlayX = $state(0);
+	let selectionOverlayY = $state(0);
+	let selectionOverlayW = $state(0);
+	let selectionOverlayH = $state(0);
+
+	// Selection interaction state
+	type SelectionHandle = 'nw' | 'ne' | 'sw' | 'se' | 'move' | null;
+	let activeHandle = $state<SelectionHandle>(null);
+	let dragStartX = 0;
+	let dragStartY = 0;
+	let selectionStartX = 0;
+	let selectionStartY = 0;
+	let selectionStartW = 0;
+	let selectionStartH = 0;
+
 	// WebGL renderer instance (NOT reactive)
 	let renderer: WebGLRenderer | null = null;
 
@@ -431,6 +447,72 @@
 		return null;
 	}
 
+	// Clamp coordinates to image boundaries
+	function clampToImageBounds(x: number, y: number): { x: number; y: number } {
+		if (!imageMetadata.isLoaded) return { x, y };
+		
+		const clampedX = Math.max(0, Math.min(x, imageMetadata.naturalWidth));
+		const clampedY = Math.max(0, Math.min(y, imageMetadata.naturalHeight));
+		
+		return { x: clampedX, y: clampedY };
+	}
+
+	// Get the selection handle at the given canvas coordinates
+	function getSelectionHandle(canvasX: number, canvasY: number): SelectionHandle {
+		const rect = colorPicker.selectionRect;
+		if (rect.isEmpty) return null;
+
+		const handleSize = 6;
+		const x = rect.x * currentScale + currentOffsetX;
+		const y = rect.y * currentScale + currentOffsetY;
+		const w = rect.width * currentScale;
+		const h = rect.height * currentScale;
+
+		// Check corner handles
+		if (canvasX >= x - handleSize/2 && canvasX <= x + handleSize/2 &&
+			canvasY >= y - handleSize/2 && canvasY <= y + handleSize/2) {
+			return 'nw';
+		}
+		if (canvasX >= x + w - handleSize/2 && canvasX <= x + w + handleSize/2 &&
+			canvasY >= y - handleSize/2 && canvasY <= y + handleSize/2) {
+			return 'ne';
+		}
+		if (canvasX >= x - handleSize/2 && canvasX <= x + handleSize/2 &&
+			canvasY >= y + h - handleSize/2 && canvasY <= y + h + handleSize/2) {
+			return 'sw';
+		}
+		if (canvasX >= x + w - handleSize/2 && canvasX <= x + w + handleSize/2 &&
+			canvasY >= y + h - handleSize/2 && canvasY <= y + h + handleSize/2) {
+			return 'se';
+		}
+
+		// Check if inside selection area (for move)
+		if (canvasX >= x && canvasX <= x + w && canvasY >= y && canvasY <= y + h) {
+			return 'move';
+		}
+
+		return null;
+	}
+
+	// Update cursor based on hover position
+	function updateSelectionCursor(canvasX: number, canvasY: number) {
+		if (colorPicker.selectionMode !== 'select') return;
+
+		const handle = getSelectionHandle(canvasX, canvasY);
+		if (!handle) {
+			canvasElement!.style.cursor = 'crosshair';
+		} else if (handle === 'move') {
+			canvasElement!.style.cursor = 'move';
+		} else {
+			// Resize cursors for corners
+			if (handle === 'nw' || handle === 'se') {
+				canvasElement!.style.cursor = 'nwse-resize';
+			} else {
+				canvasElement!.style.cursor = 'nesw-resize';
+			}
+		}
+	}
+
 	// Calculate "fit to window" scale and centered position
 	function calculateFitToWindow(imgWidth: number, imgHeight: number, containerWidth: number, containerHeight: number) {
 		const scaleX = containerWidth / imgWidth;
@@ -452,46 +534,23 @@
 		viewerControls.updateZoom(Math.round(currentScale * 100));
 		updateMinimap();
 		
-		// Draw selection rectangle if in select mode
-		if (colorPicker.selectionMode === 'select' && canvasElement) {
-			drawSelectionRectangle();
+		// Update selection rectangle overlay position if in select mode
+		if (colorPicker.selectionMode === 'select') {
+			const rect = colorPicker.selectionRect;
+			if (!rect.isEmpty) {
+				// Convert image coordinates to canvas coordinates
+				selectionOverlayX = rect.x * currentScale + currentOffsetX;
+				selectionOverlayY = rect.y * currentScale + currentOffsetY;
+				selectionOverlayW = rect.width * currentScale;
+				selectionOverlayH = rect.height * currentScale;
+			} else {
+				selectionOverlayW = 0;
+				selectionOverlayH = 0;
+			}
 		}
 	}
 
-	// Draw selection rectangle overlay on canvas
-	function drawSelectionRectangle() {
-		if (!canvasElement) return;
-		
-		const ctx = canvasElement.getContext('2d');
-		if (!ctx) return;
-		
-		const rect = colorPicker.selectionRect;
-		if (rect.isEmpty) return;
-		
-		// Convert image coordinates to canvas coordinates
-		const x = rect.x * currentScale + currentOffsetX;
-		const y = rect.y * currentScale + currentOffsetY;
-		const w = rect.width * currentScale;
-		const h = rect.height * currentScale;
-		
-		// Draw semi-transparent overlay
-		ctx.fillStyle = 'rgba(100, 150, 255, 0.1)';
-		ctx.fillRect(x, y, w, h);
-		
-		// Draw border
-		ctx.strokeStyle = 'rgba(100, 150, 255, 0.8)';
-		ctx.lineWidth = 2;
-		ctx.strokeRect(x, y, w, h);
-		
-		// Draw corner handles
-		const handleSize = 6;
-		ctx.fillStyle = 'rgba(100, 150, 255, 1)';
-		ctx.fillRect(x - handleSize / 2, y - handleSize / 2, handleSize, handleSize);
-		ctx.fillRect(x + w - handleSize / 2, y - handleSize / 2, handleSize, handleSize);
-		ctx.fillRect(x - handleSize / 2, y + h - handleSize / 2, handleSize, handleSize);
-		ctx.fillRect(x + w - handleSize / 2, y + h - handleSize / 2, handleSize, handleSize);
-	}
-
+	
 	function updateMinimap(): void {
 		if (!minimapEnabled) {
 			minimapVisible = false;
@@ -930,19 +989,40 @@
 		if (event.button !== 0) return; // Left click only
 		
 		if (colorPicker.selectionMode === 'select') {
-			// Start selection
 			const rect = canvasElement?.getBoundingClientRect();
 			if (!rect) return;
 			
 			const canvasX = event.clientX - rect.left;
 			const canvasY = event.clientY - rect.top;
 			
-			// Convert to image coordinates
-			const imageX = (canvasX - currentOffsetX) / currentScale;
-			const imageY = (canvasY - currentOffsetY) / currentScale;
+			// Check if clicking on existing selection
+			const handle = getSelectionHandle(canvasX, canvasY);
 			
-			colorPicker.startSelection(imageX, imageY);
-			isDragging = true;
+			if (handle) {
+				// Start resize/move operation
+				activeHandle = handle;
+				dragStartX = event.clientX;
+				dragStartY = event.clientY;
+				selectionStartX = colorPicker.selectionStartX;
+				selectionStartY = colorPicker.selectionStartY;
+				selectionStartW = colorPicker.selectionRect.width;
+				selectionStartH = colorPicker.selectionRect.height;
+				isDragging = true;
+				logger.debug(`[Selection] Started ${handle} operation`, 'ColorPicker');
+			} else {
+				// Start new selection
+				let imageX = (canvasX - currentOffsetX) / currentScale;
+				let imageY = (canvasY - currentOffsetY) / currentScale;
+				
+				// Clamp to image boundaries
+				const clamped = clampToImageBounds(imageX, imageY);
+				imageX = clamped.x;
+				imageY = clamped.y;
+				
+				logger.debug(`[Selection] Started selection at image coords (${imageX.toFixed(2)}, ${imageY.toFixed(2)})`, 'ColorPicker');
+				colorPicker.startSelection(imageX, imageY);
+				isDragging = true;
+			}
 		} else {
 			// Normal pan mode
 			isDragging = true;
@@ -957,19 +1037,97 @@
 		// Always update coordinates
 		updateMouseCoords(event);
 
+		// Update cursor for selection mode
+		if (colorPicker.selectionMode === 'select' && canvasElement) {
+			const rect = canvasElement.getBoundingClientRect();
+			const canvasX = event.clientX - rect.left;
+			const canvasY = event.clientY - rect.top;
+			updateSelectionCursor(canvasX, canvasY);
+		}
+
 		if (colorPicker.selectionMode === 'select' && isDragging) {
-			// Update selection
 			const rect = canvasElement?.getBoundingClientRect();
 			if (!rect) return;
 			
 			const canvasX = event.clientX - rect.left;
 			const canvasY = event.clientY - rect.top;
-			
-			// Convert to image coordinates
 			const imageX = (canvasX - currentOffsetX) / currentScale;
 			const imageY = (canvasY - currentOffsetY) / currentScale;
+
+			if (activeHandle) {
+				// Handle resize/move operation
+				const deltaX = (event.clientX - dragStartX) / currentScale;
+				const deltaY = (event.clientY - dragStartY) / currentScale;
+
+				if (activeHandle === 'move') {
+					// Move the entire selection with bounds checking
+					let newX = selectionStartX + deltaX;
+					let newY = selectionStartY + deltaY;
+					
+					// Clamp position to keep selection within image bounds
+					if (imageMetadata.isLoaded) {
+						const maxX = imageMetadata.naturalWidth - selectionStartW;
+						const maxY = imageMetadata.naturalHeight - selectionStartH;
+						newX = Math.max(0, Math.min(newX, maxX));
+						newY = Math.max(0, Math.min(newY, maxY));
+					}
+					
+					colorPicker.startSelection(newX, newY);
+					colorPicker.updateSelection(newX + selectionStartW, newY + selectionStartH);
+				} else {
+					// Resize from corner with proper bounds checking
+					let x1 = selectionStartX;
+					let y1 = selectionStartY;
+					let x2 = selectionStartX + selectionStartW;
+					let y2 = selectionStartY + selectionStartH;
+
+					if (!imageMetadata.isLoaded) return;
+
+					const imgWidth = imageMetadata.naturalWidth;
+					const imgHeight = imageMetadata.naturalHeight;
+
+					switch (activeHandle) {
+						case 'nw':
+							// NW corner moves, SE corner stays fixed
+							x1 = Math.max(0, Math.min(selectionStartX + deltaX, x2 - 1));
+							y1 = Math.max(0, Math.min(selectionStartY + deltaY, y2 - 1));
+							break;
+						case 'ne':
+							// NE corner moves, SW corner stays fixed
+							x2 = Math.min(imgWidth, Math.max(selectionStartX + selectionStartW + deltaX, x1 + 1));
+							y1 = Math.max(0, Math.min(selectionStartY + deltaY, y2 - 1));
+							break;
+						case 'sw':
+							// SW corner moves, NE corner stays fixed
+							x1 = Math.max(0, Math.min(selectionStartX + deltaX, x2 - 1));
+							y2 = Math.min(imgHeight, Math.max(selectionStartY + selectionStartH + deltaY, y1 + 1));
+							break;
+						case 'se':
+							// SE corner moves, NW corner stays fixed
+							x2 = Math.min(imgWidth, Math.max(selectionStartX + selectionStartW + deltaX, x1 + 1));
+							y2 = Math.min(imgHeight, Math.max(selectionStartY + selectionStartH + deltaY, y1 + 1));
+							break;
+					}
+
+					// Ensure minimum size (at least 1px) and proper orientation
+					const minSize = 1;
+					if (x2 <= x1) x2 = x1 + minSize;
+					if (y2 <= y1) y2 = y1 + minSize;
+					
+					colorPicker.startSelection(x1, y1);
+					colorPicker.updateSelection(x2, y2);
+				}
+				
+				logger.debug(`[Selection] ${activeHandle} operation updated`, 'ColorPicker');
+			} else {
+				// Update new selection with bounds checking
+				const clamped = clampToImageBounds(imageX, imageY);
+				colorPicker.updateSelection(clamped.x, clamped.y);
+				
+				const selectionRect = colorPicker.selectionRect;
+				logger.debug(`[Selection] Updated selection: ${selectionRect.width.toFixed(2)}x${selectionRect.height.toFixed(2)} at (${selectionRect.x.toFixed(2)}, ${selectionRect.y.toFixed(2)})`, 'ColorPicker');
+			}
 			
-			colorPicker.updateSelection(imageX, imageY);
 			render();
 		} else if (isDragging && renderer) {
 			// Normal pan mode
@@ -993,6 +1151,13 @@
 	function handleMouseUp() {
 		if (colorPicker.selectionMode === 'select' && isDragging) {
 			// End selection - TODO: implement area color averaging
+			const selectionRect = colorPicker.selectionRect;
+			if (activeHandle) {
+				logger.debug(`[Selection] Ended ${activeHandle} operation: ${selectionRect.width.toFixed(2)}x${selectionRect.height.toFixed(2)} at (${selectionRect.x.toFixed(2)}, ${selectionRect.y.toFixed(2)})`, 'ColorPicker');
+				activeHandle = null;
+			} else {
+				logger.debug(`[Selection] Ended selection: ${selectionRect.width.toFixed(2)}x${selectionRect.height.toFixed(2)} at (${selectionRect.x.toFixed(2)}, ${selectionRect.y.toFixed(2)})`, 'ColorPicker');
+			}
 			colorPicker.endSelection();
 			render();
 		}
@@ -1003,10 +1168,8 @@
 		isDragging = false;
 		mouseCoords.setOverImage(false);
 		mouseCoords.reset();
-		if (colorPicker.selectionMode === 'select') {
-			colorPicker.clearSelection();
-			render();
-		}
+		// Don't clear selection on mouse leave - user might want to interact with toolbar
+		// Selection will be cleared on new selection or explicit actions
 	}
 
 	// Track mouse position for coordinate display
@@ -1072,7 +1235,6 @@
 				const color = samplePixelColor(originalX, originalY);
 				if (color) {
 					colorPicker.setColor(color);
-					logger.debug(`Sampled color at (${originalX}, ${originalY}): RGB(${color.r}, ${color.g}, ${color.b})`, 'ColorPicker');
 				}
 			}
 		} else {
@@ -1572,9 +1734,24 @@
 			updateMinimap();
 		}
 	});
+
+	// Keyboard shortcuts
+	function handleKeydown(event: KeyboardEvent) {
+		if (!renderer || !renderer.hasImage()) return;
+
+		switch (event.key) {
+			case 'Escape':
+				if (colorPicker.selectionMode === 'select') {
+					logger.debug('[Selection] Cleared selection with Escape key', 'ColorPicker');
+					colorPicker.clearSelection();
+					render();
+				}
+				break;
+		}
+	}
 </script>
 
-<div class="w-full h-full flex flex-col bg-brand-dark relative overflow-hidden">
+<div class="w-full h-full flex flex-col bg-brand-dark relative overflow-hidden" role="application" onkeydown={handleKeydown}>
 	{#if fileService.currentFile}
 		<div class="flex-1 relative w-full h-full" bind:this={containerElement}>
 			{#if imageError}
@@ -1588,7 +1765,6 @@
 			<canvas
 					bind:this={canvasElement}
 					class="w-full h-full"
-					class:cursor-crosshair={colorPicker.selectionMode === 'select'}
 					class:cursor-grabbing={isDragging}
 					onwheel={handleWheel}
 					onmousedown={handleMouseDown}
@@ -1597,6 +1773,20 @@
 					onmouseenter={handleMouseEnter}
 					onmouseleave={handleMouseLeave}
 				></canvas>
+
+				<!-- Selection Rectangle Overlay -->
+				{#if colorPicker.selectionMode === 'select' && !colorPicker.selectionRect.isEmpty}
+					<div 
+						class="absolute pointer-events-none border-2 border-dashed border-white/60 bg-white/5"
+						style={`left:${selectionOverlayX}px;top:${selectionOverlayY}px;width:${selectionOverlayW}px;height:${selectionOverlayH}px;`}
+					>
+						<!-- Corner handles -->
+						<div class="absolute w-1.5 h-1.5 bg-white/80 -left-0.75 -top-0.75"></div>
+						<div class="absolute w-1.5 h-1.5 bg-white/80 -right-0.75 -top-0.75"></div>
+						<div class="absolute w-1.5 h-1.5 bg-white/80 -left-0.75 -bottom-0.75"></div>
+						<div class="absolute w-1.5 h-1.5 bg-white/80 -right-0.75 -bottom-0.75"></div>
+					</div>
+				{/if}
 
 				{#if minimapVisible}
 					<div class="absolute bottom-4 right-4 rounded-md border border-brand-muted/30 bg-brand-dark/80 shadow-lg p-2">

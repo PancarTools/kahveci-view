@@ -30,10 +30,14 @@
 	function handleOpenFolder() { logger.debug("Open folder clicked (mock)", "TOOLBAR"); }
 	function handleUndo() { logger.debug("Undo clicked (mock)", "TOOLBAR"); }
 	function handleRedo() { logger.debug("Redo clicked (mock)", "TOOLBAR"); }
+	function handlePointerMode() {
+		colorPicker.setSelectionMode('pointer');
+		logger.debug('Selection mode set to: pointer', "TOOLBAR");
+	}
+
 	function handleSelectMode() {
-		colorPicker.toggleSelectionMode();
-		const mode = colorPicker.selectionMode;
-		logger.debug(`Selection mode toggled to: ${mode}`, "TOOLBAR");
+		colorPicker.setSelectionMode('select');
+		logger.debug('Selection mode set to: select', "TOOLBAR");
 	}
 	function handleCopy() { logger.debug("Copy clicked (mock)", "TOOLBAR"); }
 	function handlePaste() { logger.debug("Paste clicked (mock)", "TOOLBAR"); }
@@ -251,15 +255,19 @@
 		</button>
 
 		<button 
+			class={`${buttonClass} ${colorPicker.selectionMode === 'pointer' ? 'bg-brand-light text-brand-primary' : ''}`}
+			onclick={handlePointerMode}
+			title="Pointer Mode - Pan and navigate"
+		>
+			<MousePointer class={iconClass} />
+		</button>
+
+		<button 
 			class={`${buttonClass} ${colorPicker.selectionMode === 'select' ? 'bg-brand-light text-brand-primary' : ''}`}
 			onclick={handleSelectMode}
-			title={`Toggle Selection Mode (Current: ${colorPicker.selectionMode})`}
+			title="Select Mode - Create and edit selections"
 		>
-			{#if colorPicker.selectionMode === 'select'}
-				<SquareDashed class={iconClass} />
-			{:else}
-				<MousePointer class={iconClass} />
-			{/if}
+			<SquareDashed class={iconClass} />
 		</button>
 
 		<button 
