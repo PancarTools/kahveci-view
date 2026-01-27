@@ -11,7 +11,6 @@ A fast, lightweight, cross-platform image viewer that combines the simplicity of
 - 🖼️ Fast image viewing (all major formats)
 - 🎨 Clean, modern interface
 - ⚡ Built with Tauri 2 for native performance
-- 🌙 Dark/Light theme support
 - 🔍 Advanced zoom and navigation
 - 📁 Comprehensive file management
 
