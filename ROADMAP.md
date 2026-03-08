@@ -239,10 +239,12 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 - [x] Corner resize handles with proper cursor feedback
 - [x] Selection bounds checking to prevent out-of-bounds selections
 - [x] Escape key support for explicit selection clearing
+- [x] Average color sampling for selected regions
+- [x] Status bar action to copy the current formatted color value
+- [x] `Cmd+Shift+C` shortcut to copy the current formatted color value
 - [ ] Support for animated GIF/WebP playback
 - [ ] EXIF data reading and display
 - [ ] Image properties panel with metadata
-- [ ] Area color averaging for selected regions
 
 **Deliverable**: Feature-rich viewer with professional navigation
 
@@ -496,7 +498,7 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 
 ### **Current Status**: Phase 3.4 Advanced Selection System Complete ✅
 
-**Last Achievement**: Professional selection system with interactive resize/move, separate toolbar mode buttons, macOS Preview-style dashed selection, and advanced color picker
+**Last Achievement**: Professional selection system with interactive resize/move, separate toolbar mode buttons, macOS Preview-style dashed selection, advanced color picker with averaged selection sampling, copy-to-clipboard support via status bar and `Cmd+Shift+C`, and OKLab as the startup color format default
 
 ### **Immediate Next Task (3.3)**: Full-Screen & Presentation
 
@@ -520,5 +522,5 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 
 ---
 
-_Last Updated: January 26, 2026_  
+_Last Updated: March 7, 2026_  
 _Current Phase: Phase 3 - Advanced Viewing & Navigation (3.1, 3.2, 3.2.5, 3.4 Complete) 🚀_

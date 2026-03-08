@@ -1833,10 +1833,13 @@ class ViewerControls {
 - Implemented comprehensive color picker feature with dual modes: pointer mode samples single pixel color at cursor position, select mode allows drag-to-select rectangular areas and computes average color of selection.
 - Created `colorConverter.ts` utility with color space conversions (RGB ↔ HSL, HSV, OKLab, OKLch) and formatting functions for multiple color representations.
 - Created `colorPicker.svelte.ts` store to manage color picker state including current color, format, selection mode, and selection rectangle geometry.
+- Updated `colorPicker.svelte.ts` so the color display defaults to `OKLab` at startup and resets back to `OKLab` instead of `RGB`, making perceptual color data the first visible representation.
 - Implemented pixel sampling via WebGL `readPixels()` for accurate color extraction from rendered canvas, with proper coordinate transformation accounting for zoom/pan/rotation/flip transforms.
-- Implemented area color averaging by sampling multiple pixels within selection rectangle and computing mean RGB values.
+- Implemented area color averaging by sampling multiple points within the selected rectangle on mouse-up, computing the mean RGBA value, and applying that average to the status bar color readout.
+- Added shared clipboard copy support for the current formatted color value, including temporary success feedback state in `colorPicker.svelte.ts`.
 - Added selection mode toggle to Toolbar with visual feedback (highlighted when in select mode), allowing users to switch between pointer navigation and area selection.
 - Integrated color display into StatusBar showing color swatch and formatted value, with click-to-toggle format cycling through RGB → HSL → HSV → OKLab → OKLch → RGB.
+- Added a status bar copy button and `Cmd+Shift+C` / `Ctrl+Shift+C` shortcut to copy the currently displayed color format directly to the clipboard.
 - Added selection rectangle overlay rendering with semi-transparent fill, border, and corner handles for visual feedback during area selection.
 - Effect: Navigating back to or forward into recently viewed large images no longer pays the full `texImage2D` cost on first visible visit, significantly reducing perceived latency for back/forward navigation.
 
@@ -1878,6 +1881,8 @@ class ViewerControls {
 - Added Escape key support for explicit selection clearing
 - Selection persists during toolbar interactions and mode switches
 - New selection automatically replaces previous selection (standard behavior)
+- Selection completion now updates the color picker with the averaged color of the selected region
+- Users can copy the current formatted color instantly from the status bar or with `Cmd+Shift+C`
 
 **5. Toolbar Mode Separation**
 
@@ -1962,6 +1967,6 @@ Selection system foundation complete and ready for area color averaging implemen
 
 ---
 
-_Last Updated: January 26, 2026_  
+_Last Updated: March 7, 2026_  
 _Current Phase: 3.4 - Advanced Selection System (COMPLETED ✅)_  
 _Next Milestone: Phase 3.3 - Full-Screen & Presentation_

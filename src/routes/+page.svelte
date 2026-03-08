@@ -5,10 +5,12 @@
 	import StatusBar from '$lib/components/StatusBar.svelte';
 	import DefaultState from '$lib/components/DefaultState.svelte';
 	import ImageViewer from '$lib/components/ImageViewer.svelte';
+	import { getColorPicker } from '$lib/stores/colorPicker.svelte';
 	import { getFileService } from '$lib/stores/fileService.svelte';
 	import { getNavigationStore } from '$lib/stores/navigationStore.svelte';
 	import { logger, setupGlobalErrorHandling } from '$lib/utils/logger';
 
+	const colorPicker = getColorPicker();
 	const fileService = getFileService();
 	const navStore = getNavigationStore();
 
@@ -63,11 +65,23 @@
 
 	// Keyboard navigation handler
 	async function handleKeydown(event: KeyboardEvent) {
-		// Don't handle if modifier keys are pressed (except for shortcuts)
-		if (event.ctrlKey || event.metaKey || event.altKey) return;
-		
 		// Don't handle if user is typing in an input
-		if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+		if (
+			event.target instanceof HTMLInputElement ||
+			event.target instanceof HTMLTextAreaElement ||
+			(event.target instanceof HTMLElement && event.target.isContentEditable)
+		) return;
+
+		if ((event.metaKey || event.ctrlKey) && event.shiftKey && !event.altKey && event.key.toLowerCase() === 'c') {
+			if (colorPicker.canCopyColor()) {
+				event.preventDefault();
+				await colorPicker.copyCurrentColor();
+			}
+			return;
+		}
+
+		// Don't handle navigation if modifier keys are pressed
+		if (event.ctrlKey || event.metaKey || event.altKey) return;
 
 		switch (event.key) {
 			case 'ArrowLeft':

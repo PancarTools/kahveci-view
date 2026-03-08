@@ -5,8 +5,7 @@
 	import { getViewerControls } from '$lib/stores/viewerControls.svelte';
 	import { getNavigationStore } from '$lib/stores/navigationStore.svelte';
 	import { getColorPicker } from '$lib/stores/colorPicker.svelte';
-	import { formatColor, rgbToHex } from '$lib/utils/colorConverter';
-	import { CheckCircle, XCircle, Loader2 } from '$lib/icons';
+	import { CheckCircle, XCircle, Loader2, Copy } from '$lib/icons';
 
 	const fileService = getFileService();
 	const mouseCoords = getMouseCoordinates();
@@ -21,8 +20,8 @@
 	}
 
 	function getColorDisplay(): string {
-		if (!colorPicker.currentColor) return "—";
-		return formatColor(colorPicker.currentColor, colorPicker.colorFormat);
+		const formattedColor = colorPicker.getFormattedColor();
+		return formattedColor || "—";
 	}
 
 	function getColorSwatchStyle(): string {
@@ -34,6 +33,17 @@
 
 	function handleColorClick() {
 		colorPicker.toggleFormat();
+	}
+
+	async function handleCopyColor() {
+		await colorPicker.copyCurrentColor();
+	}
+
+	function getCopyTitle(): string {
+		if (!colorPicker.canCopyColor()) return 'No color available to copy';
+		if (colorPicker.copySuccess) return 'Copied';
+		if (colorPicker.isCopying) return 'Copying...';
+		return 'Copy color value (⌘⇧C)';
 	}
 </script>
 
@@ -92,18 +102,33 @@
 	<!-- Right: Color, Zoom & Mouse Coordinates -->
 	<div class="flex items-center gap-3 flex-none">
 		<!-- Color Picker Display -->
-		<button
-			type="button"
-			class="flex items-center gap-2 px-2 py-1 rounded hover:bg-brand-subtle/50 transition-colors cursor-pointer"
-			onclick={handleColorClick}
-			title="Click to toggle color format"
-		>
-			<div
-				class="w-4 h-4 rounded border border-brand-muted/50"
-				style={getColorSwatchStyle()}
-			></div>
-			<span class="font-mono text-brand-white text-xs min-w-[120px]">{getColorDisplay()}</span>
-		</button>
+		<div class="flex items-center gap-1.5 px-1 py-1 rounded hover:bg-brand-subtle/30 transition-colors">
+			<button
+				type="button"
+				class="flex items-center gap-2 px-2 py-1 rounded hover:bg-brand-subtle/50 transition-colors cursor-pointer"
+				onclick={handleColorClick}
+				title="Click to toggle color format"
+			>
+				<div
+					class="w-4 h-4 rounded border border-brand-muted/50"
+					style={getColorSwatchStyle()}
+				></div>
+				<span class="font-mono text-brand-white text-xs min-w-[120px]">{getColorDisplay()}</span>
+			</button>
+			<button
+				type="button"
+				class="flex items-center justify-center w-7 h-7 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed hover:bg-brand-subtle/50"
+				onclick={handleCopyColor}
+				disabled={!colorPicker.canCopyColor() || colorPicker.isCopying}
+				title={getCopyTitle()}
+			>
+				{#if colorPicker.copySuccess}
+					<span class="text-[10px] font-medium text-brand-primary">OK</span>
+				{:else}
+					<Copy class="w-3.5 h-3.5 text-brand-muted" />
+				{/if}
+			</button>
+		</div>
 		
 		{#if fileService.currentFile && imageMetadata.isLoaded}
 			<span class="text-brand-muted/40">•</span>

@@ -441,10 +441,73 @@
 	}
 
 	// Sample average color from rectangular area
-	// TODO: Implement area color averaging in WebGLRenderer.sampleArea()
 	function sampleAreaColor(x1: number, y1: number, x2: number, y2: number) {
-		// Area averaging not yet implemented
-		return null;
+		if (!renderer || !canvasElement || !imageMetadata.isLoaded) return null;
+
+		const dpr = window.devicePixelRatio || 1;
+		const { width: canvasW, height: canvasH } = renderer.getCanvasSize();
+		if (canvasW <= 0 || canvasH <= 0) return null;
+
+		const minImageX = Math.max(0, Math.min(x1, x2));
+		const maxImageX = Math.min(imageMetadata.naturalWidth, Math.max(x1, x2));
+		const minImageY = Math.max(0, Math.min(y1, y2));
+		const maxImageY = Math.min(imageMetadata.naturalHeight, Math.max(y1, y2));
+
+		if (maxImageX <= minImageX || maxImageY <= minImageY) return null;
+
+		const startCanvasX = minImageX * currentScale + currentOffsetX;
+		const endCanvasX = maxImageX * currentScale + currentOffsetX;
+		const startCanvasY = minImageY * currentScale + currentOffsetY;
+		const endCanvasY = maxImageY * currentScale + currentOffsetY;
+
+		const clampedCanvasLeft = Math.max(0, Math.min(startCanvasX, endCanvasX));
+		const clampedCanvasRight = Math.min(canvasW, Math.max(startCanvasX, endCanvasX));
+		const clampedCanvasTop = Math.max(0, Math.min(startCanvasY, endCanvasY));
+		const clampedCanvasBottom = Math.min(canvasH, Math.max(startCanvasY, endCanvasY));
+
+		if (clampedCanvasRight <= clampedCanvasLeft || clampedCanvasBottom <= clampedCanvasTop) return null;
+
+		const startGlX = Math.max(0, Math.floor(clampedCanvasLeft * dpr));
+		const endGlX = Math.min(Math.ceil(clampedCanvasRight * dpr), Math.max(1, Math.floor(canvasW * dpr)));
+		const topGlY = Math.max(0, Math.floor(clampedCanvasTop * dpr));
+		const bottomGlYExclusive = Math.min(Math.ceil(clampedCanvasBottom * dpr), Math.max(1, Math.floor(canvasH * dpr)));
+
+		const pixelWidth = endGlX - startGlX;
+		const pixelHeight = bottomGlYExclusive - topGlY;
+		if (pixelWidth <= 0 || pixelHeight <= 0) return null;
+
+		const stepX = Math.max(1, Math.ceil(pixelWidth / 64));
+		const stepY = Math.max(1, Math.ceil(pixelHeight / 64));
+
+		let totalR = 0;
+		let totalG = 0;
+		let totalB = 0;
+		let totalA = 0;
+		let sampleCount = 0;
+
+		for (let glYFromTop = 0; glYFromTop < pixelHeight; glYFromTop += stepY) {
+			for (let glXOffset = 0; glXOffset < pixelWidth; glXOffset += stepX) {
+				const glX = startGlX + glXOffset;
+				const glY = Math.max(0, Math.floor(canvasH * dpr) - (topGlY + glYFromTop) - 1);
+				const color = renderer.samplePixel(glX, glY);
+				if (!color) continue;
+
+				totalR += color.r;
+				totalG += color.g;
+				totalB += color.b;
+				totalA += color.a ?? 255;
+				sampleCount++;
+			}
+		}
+
+		if (sampleCount === 0) return null;
+
+		return {
+			r: Math.round(totalR / sampleCount),
+			g: Math.round(totalG / sampleCount),
+			b: Math.round(totalB / sampleCount),
+			a: Math.round(totalA / sampleCount),
+		};
 	}
 
 	// Clamp coordinates to image boundaries
@@ -1150,7 +1213,6 @@
 
 	function handleMouseUp() {
 		if (colorPicker.selectionMode === 'select' && isDragging) {
-			// End selection - TODO: implement area color averaging
 			const selectionRect = colorPicker.selectionRect;
 			if (activeHandle) {
 				logger.debug(`[Selection] Ended ${activeHandle} operation: ${selectionRect.width.toFixed(2)}x${selectionRect.height.toFixed(2)} at (${selectionRect.x.toFixed(2)}, ${selectionRect.y.toFixed(2)})`, 'ColorPicker');
@@ -1158,6 +1220,28 @@
 			} else {
 				logger.debug(`[Selection] Ended selection: ${selectionRect.width.toFixed(2)}x${selectionRect.height.toFixed(2)} at (${selectionRect.x.toFixed(2)}, ${selectionRect.y.toFixed(2)})`, 'ColorPicker');
 			}
+
+			if (!selectionRect.isEmpty) {
+				const averagedColor = sampleAreaColor(
+					selectionRect.x,
+					selectionRect.y,
+					selectionRect.x + selectionRect.width,
+					selectionRect.y + selectionRect.height
+				);
+				if (averagedColor) {
+					colorPicker.setColor(averagedColor);
+					logger.debug('[Selection] Applied averaged area color', 'ColorPicker', {
+						selection: {
+							x: selectionRect.x,
+							y: selectionRect.y,
+							width: selectionRect.width,
+							height: selectionRect.height,
+						},
+						color: averagedColor,
+					});
+				}
+			}
+
 			colorPicker.endSelection();
 			render();
 		}

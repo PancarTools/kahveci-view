@@ -1,15 +1,18 @@
 import type { ColorFormat, RGB } from "$lib/utils/colorConverter";
-import { getNextFormat } from "$lib/utils/colorConverter";
+import { formatColor, getNextFormat } from "$lib/utils/colorConverter";
 
 export type SelectionMode = "pointer" | "select";
 
 class ColorPicker {
 	// Color state
 	currentColor = $state<RGB | null>(null);
-	colorFormat = $state<ColorFormat>("rgb");
+	colorFormat = $state<ColorFormat>("oklab");
+	isCopying = $state(false);
+	copySuccess = $state(false);
 
 	// Selection mode
 	selectionMode = $state<SelectionMode>("pointer");
+	private copyFeedbackTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	// Selection rectangle (in image coordinates)
 	selectionStartX = $state(0);
@@ -28,6 +31,42 @@ class ColorPicker {
 
 	setFormat(format: ColorFormat) {
 		this.colorFormat = format;
+	}
+
+	getFormattedColor(): string {
+		if (!this.currentColor) return "";
+		return formatColor(this.currentColor, this.colorFormat);
+	}
+
+	canCopyColor(): boolean {
+		return this.getFormattedColor().length > 0;
+	}
+
+	async copyCurrentColor(): Promise<boolean> {
+		const formattedColor = this.getFormattedColor();
+		if (!formattedColor || typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
+			return false;
+		}
+
+		this.isCopying = true;
+
+		try {
+			await navigator.clipboard.writeText(formattedColor);
+			this.copySuccess = true;
+			if (this.copyFeedbackTimeout) {
+				clearTimeout(this.copyFeedbackTimeout);
+			}
+			this.copyFeedbackTimeout = setTimeout(() => {
+				this.copySuccess = false;
+				this.copyFeedbackTimeout = null;
+			}, 1200);
+			return true;
+		} catch {
+			this.copySuccess = false;
+			return false;
+		} finally {
+			this.isCopying = false;
+		}
 	}
 
 	toggleSelectionMode() {
@@ -82,7 +121,13 @@ class ColorPicker {
 
 	reset() {
 		this.currentColor = null;
-		this.colorFormat = "rgb";
+		this.colorFormat = "oklab";
+		this.isCopying = false;
+		this.copySuccess = false;
+		if (this.copyFeedbackTimeout) {
+			clearTimeout(this.copyFeedbackTimeout);
+			this.copyFeedbackTimeout = null;
+		}
 		this.selectionMode = "pointer";
 		this.clearSelection();
 	}
