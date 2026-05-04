@@ -8,11 +8,12 @@ _I used IrfanView a lot in the beginning of my career and I miss it a lot. I dec
 
 ## Features
 
-- 🖼️ Fast image viewing (all major formats)
-- 🎨 Clean, modern interface
-- ⚡ Built with Tauri 2 for native performance
-- 🔍 Advanced zoom and navigation
-- 📁 Comprehensive file management
+- 🖼️ Fast image viewing (25+ formats including HEIC, AVIF, SVG, WebP, TIFF, PSD, EXR, QOI and more)
+- 🔍 WebGL-accelerated zoom-to-cursor, pan, rotate, and flip
+- 🗂️ Folder navigation with keyboard shortcuts and adjacent-image preloading
+- 🎨 Color picker with pixel sampling and area-average selection (RGB, HSL, HSV, OKLab, OKLch)
+- ⚡ GPU texture caching and progressive large-image loading
+- 🪟 Custom window chrome with macOS-style traffic light controls
 
 ## Tech Stack
 

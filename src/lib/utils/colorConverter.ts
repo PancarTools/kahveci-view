@@ -124,9 +124,9 @@ export function rgbToOklab(rgb: RGB): OKLab {
 	const s_ = Math.cbrt(s);
 
 	return {
-		l: Math.round((0.2104542553 * l_ + 0.793617785 * m_ - 0.0040720468 * s_) * 100),
-		a: Math.round((1.9779984951 * l_ - 2.428592205 * m_ + 0.4505937099 * s_) * 100),
-		b: Math.round((0.0259040371 * l_ + 0.7827717662 * m_ - 0.808649671 * s_) * 100),
+		l: 0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
+		a: 1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
+		b: 0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086496736 * s_,
 		alpha: rgb.a,
 	};
 }
@@ -139,8 +139,8 @@ export function rgbToOklch(rgb: RGB): OKLch {
 
 	return {
 		l: oklab.l,
-		c: Math.round(c * 100),
-		h: Math.round(h),
+		c,
+		h,
 		alpha: rgb.a,
 	};
 }
@@ -166,12 +166,12 @@ export function formatColor(rgb: RGB, format: ColorFormat): string {
 
 		case "oklab": {
 			const oklab = rgbToOklab(rgb);
-			return `oklab(${(oklab.l / 100).toFixed(2)} ${(oklab.a / 100).toFixed(2)} ${(oklab.b / 100).toFixed(2)})`;
+			return `oklab(${oklab.l.toFixed(4)} ${oklab.a.toFixed(4)} ${oklab.b.toFixed(4)})`;
 		}
 
 		case "oklch": {
 			const oklch = rgbToOklch(rgb);
-			return `oklch(${(oklch.l / 100).toFixed(2)} ${(oklch.c / 100).toFixed(2)} ${oklch.h})`;
+			return `oklch(${oklch.l.toFixed(4)} ${oklch.c.toFixed(4)} ${oklch.h.toFixed(2)})`;
 		}
 
 		default:

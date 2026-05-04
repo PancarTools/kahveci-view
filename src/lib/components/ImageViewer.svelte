@@ -1192,6 +1192,20 @@
 			}
 			
 			render();
+
+			// Live color averaging while dragging
+			const selectionRect = colorPicker.selectionRect;
+			if (!selectionRect.isEmpty) {
+				const averagedColor = sampleAreaColor(
+					selectionRect.x,
+					selectionRect.y,
+					selectionRect.x + selectionRect.width,
+					selectionRect.y + selectionRect.height
+				);
+				if (averagedColor) {
+					colorPicker.setColor(averagedColor);
+				}
+			}
 		} else if (isDragging && renderer) {
 			// Normal pan mode
 			const deltaX = event.clientX - lastMouseX;

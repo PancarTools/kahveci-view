@@ -242,6 +242,7 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 - [x] Average color sampling for selected regions
 - [x] Status bar action to copy the current formatted color value
 - [x] `Cmd+Shift+C` shortcut to copy the current formatted color value
+- [x] Live area color averaging during selection drag (no wait for mouse release)
 - [ ] Support for animated GIF/WebP playback
 - [ ] EXIF data reading and display
 - [ ] Image properties panel with metadata
@@ -272,6 +273,7 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 - [x] Color picker with pixel sampling and area averaging
 - [x] Selection mode toggle (pointer/select) for color picking
 - [x] Color format cycling (RGB, HSL, HSV, OKLab, OKLch)
+- [x] OKLab/OKLch conversion accuracy fix (removed ×100 integer scaling; raw float64 storage; corrected reference coefficients)
 - [ ] Drag & drop support for files and folders
 - [ ] Multiple file selection
 
@@ -498,7 +500,7 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 
 ### **Current Status**: Phase 3.4 Advanced Selection System Complete ✅
 
-**Last Achievement**: Professional selection system with interactive resize/move, separate toolbar mode buttons, macOS Preview-style dashed selection, advanced color picker with averaged selection sampling, copy-to-clipboard support via status bar and `Cmd+Shift+C`, and OKLab as the startup color format default
+**Last Achievement**: Live area color averaging during selection drag; professional selection system with interactive resize/move, separate toolbar mode buttons, macOS Preview-style dashed selection, averaged selection sampling, copy-to-clipboard via status bar and `Cmd+Shift+C`, OKLab as startup color format default
 
 ### **Immediate Next Task (3.3)**: Full-Screen & Presentation
 
@@ -522,5 +524,5 @@ Create a fast, lightweight, cross-platform image viewer and editor that combines
 
 ---
 
-_Last Updated: March 7, 2026_  
+_Last Updated: May 3, 2026_  
 _Current Phase: Phase 3 - Advanced Viewing & Navigation (3.1, 3.2, 3.2.5, 3.4 Complete) 🚀_
